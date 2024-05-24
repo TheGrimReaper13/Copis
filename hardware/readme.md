@@ -26,5 +26,6 @@ Lr := Lame "red" fencer
 | LED | White | 2 |
 | Speaker/Buzzer | any small speaker or buzzer will do | 1 |
 | Switch | Toggle | 1 |
+| socket | 4mm | 6 |
 
 *Use LED resistor value according to the LED used and brightness needed.
