@@ -6,11 +6,15 @@
    L_PIN: digital input
    C_PIN: didital input 
 */
+
+# define CONTROL_USED
+# undef CONTROL_USED
+
 const long DEPRESS_TIME = 500;     // in us, 0.5ms
 const long LOCKOUT_TIME = 170000;  // in us, 170ms
 const long RESET_TIME = 3000; // in ms, 3s
 
-const uint8_t SOUND_SIGNAL_PIN = 3;
+const uint8_t SOUND_SIGNAL_PIN = 9;
 const uint8_t HOLD_PIN = 2;
 
 struct Fencer {
@@ -26,8 +30,8 @@ struct Fencer {
   const uint8_t ERROR_PIN;
 };
 
-Fencer green =  { 0, 0, false, false, 4, 7, 5, 12, 9};
-Fencer red =    { 0, 0, false, false, 8, 11, 6, 13, 10 };
+Fencer green =  { 0, 0, false, false, 3, 5, 7, 10, 12 };
+Fencer red =    { 0, 0, false, false, 4, 6, 8, 11, 13 };
 
 void reset(Fencer *p) {
   // W_PIN is always LOW after exiting checkHit
@@ -50,10 +54,14 @@ void reset() {
 // checks if attacker made valid hit
 void checkHit(Fencer *att, Fencer *def, unsigned long now) {
   digitalWrite(att->W_PIN, HIGH);
+# ifdef CONTROL_USED
   // check control circuit, if we can't read a signal on the control circuit 
   if (digitalRead(att->C_PIN) == LOW) {
     att->error = true;
   }
+# else
+  if (0) {}
+# endif
   // so now if we can read HIGH on red L_PIN there should be contact between greens weapon and reds lame
   else if (digitalRead(def->L_PIN) == HIGH) {
     // start counting when this has been first contact
@@ -92,7 +100,14 @@ void setup() {
   pinMode(red.W_PIN, OUTPUT);
 
   // digital pins are input by default
+  pinMode(HOLD_PIN, INPUT_PULLUP);
   
+  pinMode(green.L_PIN, INPUT);
+  pinMode(red.L_PIN, INPUT);
+
+  pinMode(green.C_PIN, INPUT);
+  pinMode(red.C_PIN, INPUT);
+
   digitalWrite(green.W_PIN, LOW);
   digitalWrite(red.W_PIN, LOW);
 
