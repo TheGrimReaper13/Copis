@@ -9,6 +9,11 @@ One more issue thoug is unsolved for now. The scoring box will register a hit if
 
 The electrical circuit can not be much simpler. We only use some resistors to pull-down the inputs, isolate the outputs and run the LEDs.
 
+### Current State
+
+- behaves as expected on bench
+- need to do live test
+
 ### Resources 
 
 Official FIE material rulebook 2023 Annex B C. SABRE
