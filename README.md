@@ -11,5 +11,5 @@ The electrical circuit can not be much simpler. We only use some resistors to pu
 
 ### Resources 
 
-Official FIE material rulebook 2023, specifically Annex B C. SABRE
+Official FIE material rulebook 2023 Annex B C. SABRE
 https://static.fie.org/uploads/32/163442-book%20m%20ang.pdf
