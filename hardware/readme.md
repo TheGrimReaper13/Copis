@@ -2,16 +2,12 @@
 
 ![Circuit](circuit.png)
 
-### Symbols
-
-Wg := Weapon "green" fencer
-
-Wr := Weapon "red" fencer
-
-Lg := Lame "green" fencer
-
-Lr := Lame "red" fencer
-
+| Symbol | Meaning |
+|:---:|:---:|:---:|
+| Wg | Weapon of "green" fencer |
+| Wr | Weapon of "red fencer" |
+| Lg | Lame of "green" fencer |
+| Lr | Lame of "red" fencer |
 
 ### Components
 
