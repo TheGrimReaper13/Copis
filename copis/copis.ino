@@ -15,7 +15,7 @@ const long LOCKOUT_TIME = 170000;  // in us, 170ms
 const long RESET_TIME = 3000; // in ms, 3s
 
 const uint8_t SOUND_SIGNAL_PIN = 9;
-const uint8_t HOLD_PIN = 2;
+const uint8_t HOLD_PIN = 2; // toggle switch, probably better to make this a momentary switch and a software toggle
 
 struct Fencer {
   unsigned long depressed_time;
@@ -122,7 +122,13 @@ void loop() {
 
   const unsigned long now = micros();
 
-  if (green.error || red.error) {
+  // check if hold pin is low as we pulled it up
+  if (digitalRead(HOLD_PIN) == LOW) {
+    // don't do anything as long as hold toggle is "on" but reset so we can assume operation
+    reset();
+  }
+# ifdef CONTROL_USED
+  else if (green.error || red.error) {
     // if we ecountered error we do tone 
     signalTone();
     // signal on the corresponding white lamp
@@ -131,6 +137,7 @@ void loop() {
     // then again reset everything
     reset();
   }
+# endif
   // if at least one player made a hit we can check if lockout time has expired, if so we can signal hits and reset the routine
   else if ((green.hit && (now - green.lockout_time) > LOCKOUT_TIME) || (red.hit && (now - red.lockout_time) > LOCKOUT_TIME)) {
     // sound signal
