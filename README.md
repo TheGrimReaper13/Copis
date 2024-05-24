@@ -1,6 +1,16 @@
 # COPIS - 0.1
 ### A simple DIY wired scoring box for saber fencing based on Arduino
 
+The superficial rules for saber when a valid hit should be detected are very simple. Touch your oponents conductive target areas with your conductive weapon.
+In Foil and Epee it is very easy to build a scoring box as the blades themselves don't carry any current. We only need to handle events when the switches on the tips of the blades are depressed. This eliminates several special cases which saber needs to deal with.
+We avoid handling some of these specifically with our implementation.
+
+ - sword A in contact with sword B
+ - sword X in contact with lame X
+ - sword X in contact with sword Y and lame X
+ - sword X in contact with sword Y and lame Y
+ - sword X in contact with sword Y, lame X and lame Y
+
 The main problems with saber compared to the other weapons is that the whole blade and guard is a conductor.
 One issue this leads to can be easily avoided via multiple approaches. The other is the blades touching and affecting each others circuits.
 We work around these issues by only having i.e. fencer A's weapon hot and only fencer B's lame reading at that exact moment.
