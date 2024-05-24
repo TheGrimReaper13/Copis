@@ -1,5 +1,5 @@
 # COPIS - 0.1
-### A simple wired scoring box for saber fencing based on Arduino
+### A simple DIY wired scoring box for saber fencing based on Arduino
 
 The main problems with saber compared to the other weapons is that the whole blade and guard is a conductor.
 One issue this leads to can be easily avoided via multiple approaches. The other is the blades touching and affecting each others circuits.
