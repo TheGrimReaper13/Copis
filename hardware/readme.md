@@ -3,7 +3,7 @@
 ![Circuit](circuit.png)
 
 | Symbol | Meaning |
-|:---:|:---:|:---:|
+|:---:|:---:|
 | Wg | Weapon of "green" fencer |
 | Wr | Weapon of "red fencer" |
 | Lg | Lame of "green" fencer |
