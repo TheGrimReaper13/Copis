@@ -1,3 +1,7 @@
+### Circuit
+
+![Circuit](circuit.png)
+
 ### Symbols
 
 Wg := Weapon "green" fencer
