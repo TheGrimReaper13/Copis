@@ -133,26 +133,12 @@ void loop() {
   }
   // if at least one player made a hit we can check if lockout time has expired, if so we can signal hits and reset the routine
   else if ((green.hit && (now - green.lockout_time) > LOCKOUT_TIME) || (red.hit && (now - red.lockout_time) > LOCKOUT_TIME)) {
-    // end routine, signal hits, reset
-    if (green.hit && red.hit) {
-      // sound signal
-      signalTone();
-      // light signal
-      digitalWrite(green.SIGNAL_PIN, HIGH);
-      digitalWrite(red.SIGNAL_PIN, HIGH);
-    }
-    else if (green.hit) {
-       // sound signal
-      signalTone();
-      // light signal
-      digitalWrite(green.SIGNAL_PIN, HIGH);
-    }
-    else if (red.hit) {
-      // sound signal
-      signalTone();
-      // light signal
-      digitalWrite(red.SIGNAL_PIN, HIGH);
-    }
+    // sound signal
+    signalTone();
+    // light signal
+    digitalWrite(green.SIGNAL_PIN, green.hit ? HIGH : LOW);
+    digitalWrite(red.SIGNAL_PIN, red.hit ? HIGH : LOW);
+  
     reset();
   }
   else {
