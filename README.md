@@ -5,7 +5,7 @@ The superficial rules for saber when a valid hit should be detected are very sim
 In Foil and Epee it is very easy to build a scoring box as the blades themselves don't carry any current. We only need to handle events when the switches on the tips of the blades are depressed. This eliminates several special cases which saber needs to deal with.
 We avoid handling some of these specifically with our implementation.
 
- - sword A in contact with sword B
+ - sword X in contact with sword Y
  - sword X in contact with lame X
  - sword X in contact with sword Y and lame X
  - sword X in contact with sword Y and lame Y
