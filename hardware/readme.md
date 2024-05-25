@@ -17,6 +17,7 @@
 | Resistor | 10k | 4 |
 | Resistor | 1k | 2 |
 | Resistor | 220* | 6 |
+| Diode | Zener | 2 |
 | LED | Green | 1 |
 | LED | Red | 1 |
 | LED | White | 2 |
