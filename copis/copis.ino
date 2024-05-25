@@ -10,13 +10,10 @@
 
 */
 
-# define CONTROL_USED
-# undef CONTROL_USED
-
 const unsigned long   DEPRESS_TIME      = 300;     // in us, 0.5ms
 const unsigned long   LOCKOUT_TIME      = 170000;  // in us, 170ms
 const unsigned long   ERROR_TIME        = 3000;    // in us, 3ms
-const long            RESET_TIME        = 3000;    // in ms, 3s
+const unsigned long   RESET_TIME        = 3000;    // in ms, 3s
 
 const uint8_t         SOUND_SIGNAL_PIN  = 9;       // produces square wave and is connected to speaker 
 const uint8_t         HOLD_PIN          = 2;       // toggle switch, probably better to make this a momentary switch and a software toggle
@@ -87,14 +84,16 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
     digitalWrite(att->SELF_HIT_PIN, HIGH);
   }
 
-# ifdef CONTROL_USED
   // check control circuit, if we can't read a signal on the control circuit 
   if (digitalRead(att->C_PIN) == LOW) {
-    att->error = true;
+    // start timer
+    if (att->error_time == 0) {
+      att->error_time = now;
+    }
+    else if (!att->error && (now - att->error_time) > ERROR_TIME) {
+      att->error = true;
+    }
   }
-# else
-  if (0) {}
-# endif
   // so now if we can read HIGH on red L_PIN there should be contact between greens weapon and reds lame
   else if (digitalRead(def->L_PIN) == HIGH) {
     // start counting when this has been first contact
@@ -115,6 +114,11 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
   else {
     att->depressed_time = 0;
   }
+
+  if (att->error_time != 0 && digitalRead(att->C_PIN) == HIGH) {
+    att->error_time = 0;
+  }
+
   digitalWrite(att->W_PIN, LOW);
 } // end checkHit
 
@@ -122,19 +126,25 @@ void checkBladesTouching() {
 }
 
 void setup() {
-  pinMode(green.SIGNAL_PIN, OUTPUT);
-  pinMode(red.SIGNAL_PIN, OUTPUT);
-
-  pinMode(green.W_PIN, OUTPUT);
-  pinMode(red.W_PIN, OUTPUT);
-
   pinMode(HOLD_PIN, INPUT_PULLUP);
-  
+
   pinMode(green.L_PIN, INPUT);
   pinMode(red.L_PIN, INPUT);
 
   pinMode(green.C_PIN, INPUT);
   pinMode(red.C_PIN, INPUT);
+
+  pinMode(green.W_PIN, OUTPUT);
+  pinMode(red.W_PIN, OUTPUT);
+
+  pinMode(green.SIGNAL_PIN, OUTPUT);
+  pinMode(red.SIGNAL_PIN, OUTPUT);
+
+  pinMode(green.ERROR_PIN, OUTPUT);
+  pinMode(red.ERROR_PIN, OUTPUT);
+
+  pinMode(green.SELF_HIT_PIN, OUTPUT);
+  pinMode(red.SELF_HIT_PIN, OUTPUT);
 
   digitalWrite(green.W_PIN, LOW);
   digitalWrite(red.W_PIN, LOW);
@@ -158,7 +168,6 @@ void loop() {
     // don't do anything as long as hold toggle is "on" but reset so we can assume operation normally
     reset();
   }
-# ifdef CONTROL_USED
   else if (green.error || red.error) {
     // if we ecountered error we do tone 
     signalTone();
@@ -168,7 +177,6 @@ void loop() {
     // then again reset everything
     reset();
   }
-# endif
   // if at least one player made a hit we can check if lockout time has expired, if so we can signal hits and reset the routine
   else if ((green.hit && (now - green.lockout_time) > LOCKOUT_TIME) || (red.hit && (now - red.lockout_time) > LOCKOUT_TIME)) {
     // sound signal
