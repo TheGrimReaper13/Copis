@@ -17,7 +17,7 @@ Our implementation solves these issues by only having i.e. fencer A's weapon hot
 Then we just repeat this with the fencers swapped respectively.
 One last issue is unsolved for now. The scoring box will register a hit if fencer A touches their own lame and fencer B touches the weapon of fencer A.
 
-The electrical circuit can not be much simpler. We only use some resistors to pull-down the inputs, isolate the outputs and run the LEDs.
+The electrical circuit can not be much simpler. We only use some resistors to pull-down the inputs, run the LEDs and some diodes to isolate the outputs.
 
 A line is connected through the lame to an input on our microcontroller, B line is the control and connected to the weapon as well as an input and C is the "power" line connected to the weapon and an output.
 ### Current State
