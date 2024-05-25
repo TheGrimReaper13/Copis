@@ -16,10 +16,11 @@
 | Arduino | Uno or similar | 1 |
 | Resistor | 10k | 4 |
 | Resistor | 1k | 2 |
-| Resistor | 220* | 4 |
+| Resistor | 220* | 6 |
 | LED | Green | 1 |
 | LED | Red | 1 |
 | LED | White | 2 |
+| LED | Yellow | 2 |
 | Speaker/Buzzer | any small speaker or buzzer will do | 1 |
 | Switch | Toggle | 1 |
 | Socket | 4mm | 6 |
