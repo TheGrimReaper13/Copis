@@ -17,6 +17,17 @@ const long RESET_TIME = 3000; // in ms, 3s
 const uint8_t SOUND_SIGNAL_PIN = 9;
 const uint8_t HOLD_PIN = 2; // toggle switch, probably better to make this a momentary switch and a software toggle
 
+# define GREEN_WEAPON_PIN 3
+# define RED_WEAPON_PIN 4
+# define GREEN_LAME_PIN 5
+# define RED_LAME_PIN 6
+# define GREEN_CONTROL_PIN 7
+# define RED_CONTROL_PIN 8
+# define GREEN_SIGNAL_PIN 10
+# define RED_SIGNAL_PIN 11
+# define GREEN_ERROR_PIN 12
+# define RED_ERROR_PIN 13
+
 struct Fencer {
   unsigned long depressed_time;
   unsigned long lockout_time;
@@ -30,8 +41,8 @@ struct Fencer {
   const uint8_t ERROR_PIN;
 };
 
-Fencer green =  { 0, 0, false, false, 3, 5, 7, 10, 12 };
-Fencer red =    { 0, 0, false, false, 4, 6, 8, 11, 13 };
+Fencer green =  { 0, 0, false, false, GREEN_WEAPON_PIN, GREEN_LAME_PIN, GREEN_CONTROL_PIN, GREEN_SIGNAL_PIN, GREEN_ERROR_PIN };
+Fencer red =    { 0, 0, false, false, RED_WEAPON_PIN, RED_LAME_PIN, RED_CONTROL_PIN, RED_SIGNAL_PIN, RED_ERROR_PIN };
 
 void reset(Fencer *p) {
   // W_PIN is always LOW after exiting checkHit
