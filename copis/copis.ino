@@ -146,7 +146,7 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
       }
     }
   }
-  // contact lost so we reset depressed time
+  // contact lost so we reset depressed time, this will also be called if whip_over is active
   else {
     att->depressed_time = 0;
   }
