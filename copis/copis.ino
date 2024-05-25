@@ -14,10 +14,13 @@ const unsigned long   DEPRESS_TIME      = 300;     // in us, 0.5ms
 const unsigned long   LOCKOUT_TIME      = 170000;  // in us, 170ms
 const unsigned long   ERROR_TIME        = 3000;    // in us, 3ms
 const unsigned long   RESET_TIME        = 3000;    // in ms, 3s
+const unsigned long   MIN_WHIPOVER_TIME = 4000;    // in us, 3ms
+const unsigned long   MAX_WHIPOVER_TIME = 15000;   // in us, 15ms
 
 const uint8_t         SOUND_SIGNAL_PIN  = 9;       // produces square wave and is connected to speaker 
 const uint8_t         HOLD_PIN          = 2;       // toggle switch, probably better to make this a momentary switch and a software toggle
 
+// use defines here to make struct initialization a bit more readible as we can't use implicit initializers :(
 # define GREEN_WEAPON_PIN   3
 # define RED_WEAPON_PIN     4
 # define GREEN_LAME_PIN     5
@@ -35,8 +38,10 @@ struct Fencer {
   unsigned long depressed_time; // time when contact was made
   unsigned long lockout_time;   // time when valid hit was made
   unsigned long error_time;     // time when break in control circuit was detected
+  unsigned long parry_time;     // time when a both blades made contact
   bool          hit;            // we need to be able to remember that a hit was made
-  bool          error;          // signals break in control circuit
+  bool          error;          // break in control circuit
+  bool          whip_over;      // active whipover protection 
 
   const uint8_t W_PIN;          // C line
   const uint8_t L_PIN;          // A line
@@ -46,8 +51,8 @@ struct Fencer {
   const uint8_t SELF_HIT_PIN;   // yellow
 };
 
-Fencer green =  { 0, 0, 0, false, false, GREEN_WEAPON_PIN,  GREEN_LAME_PIN, GREEN_CONTROL_PIN,  GREEN_SIGNAL_PIN,   GREEN_ERROR_PIN,  GREEN_SELF_HIT_PIN };
-Fencer red =    { 0, 0, 0, false, false, RED_WEAPON_PIN,    RED_LAME_PIN,   RED_CONTROL_PIN,    RED_SIGNAL_PIN,     RED_ERROR_PIN,    RED_SELF_HIT_PIN };
+Fencer green =  { 0, 0, 0, 0, false, false, false, GREEN_WEAPON_PIN,  GREEN_LAME_PIN, GREEN_CONTROL_PIN,  GREEN_SIGNAL_PIN,   GREEN_ERROR_PIN,  GREEN_SELF_HIT_PIN };
+Fencer red =    { 0, 0, 0, 0, false, false, false, RED_WEAPON_PIN,    RED_LAME_PIN,   RED_CONTROL_PIN,    RED_SIGNAL_PIN,     RED_ERROR_PIN,    RED_SELF_HIT_PIN };
 
 void reset(Fencer *p) {
   // W_PIN is always LOW after exiting checkHit
@@ -59,8 +64,11 @@ void reset(Fencer *p) {
   p->depressed_time = 0;
   p->lockout_time = 0;
   p->error_time = 0;
+  p->parry_time = 0;
+
   p->hit = false;
   p->error = false;
+  p->whip_over = false;
 } // end reset
 
 void reset() {
@@ -84,7 +92,33 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
     digitalWrite(att->SELF_HIT_PIN, HIGH);
   }
 
-  // check control circuit, if we can't read a signal on the control circuit 
+  const unsigned long parry_diff = now - att->parry_time;
+
+  // handle whip over
+  if (digitalRead(def->C_PIN) == HIGH) {
+    // start timer
+    if (att->parry_time == 0) {
+      att->parry_time = now; 
+    }
+    // only disable hits with an interval of 4-15ms between the contact of the blades and 
+    else if (parry_diff > MIN_WHIPOVER_TIME && parry_diff <= MAX_WHIPOVER_TIME) {
+# ifdef WHIP_OVER
+      att->whip_over = true;
+# endif
+    }
+  }
+  // no contact between blades so we reset parry timer
+  else {
+    att->parry_time = 0;
+  }
+
+  // make sure we reset whip_over to false after whip_over time has passed
+  if (att->whip_over && parry_diff > MAX_WHIPOVER_TIME) {
+    att->whip_over = false;
+    att->parry_time = 0;
+  }
+
+  // check control circuit, if we can't read a signal on the control circuit for ERROR_TIME we set error flag
   if (digitalRead(att->C_PIN) == LOW) {
     // start timer
     if (att->error_time == 0) {
@@ -94,8 +128,10 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
       att->error = true;
     }
   }
-  // so now if we can read HIGH on red L_PIN there should be contact between greens weapon and reds lame
-  else if (digitalRead(def->L_PIN) == HIGH) {
+  // only make reading if whip_over protection is not active
+  // if we can read HIGH on red L_PIN there should be contact between greens weapon and reds lame
+  // this can't be true if C_PIN read low
+  else if (!att->whip_over && digitalRead(def->L_PIN) == HIGH) {
     // start counting when this has been first contact
     if (att->depressed_time == 0) {
         att->depressed_time = now;
@@ -121,9 +157,6 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
 
   digitalWrite(att->W_PIN, LOW);
 } // end checkHit
-
-void checkBladesTouching() {
-}
 
 void setup() {
   pinMode(HOLD_PIN, INPUT_PULLUP);
