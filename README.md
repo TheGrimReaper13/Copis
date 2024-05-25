@@ -24,6 +24,7 @@ A line is connected through the lame to an input on our microcontroller, B line 
 
 - behaves as expected on bench
 - need to do live test
+- add capacitive coupling to weapon outputs
 
 ### Resources 
 
