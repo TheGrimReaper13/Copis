@@ -1,6 +1,6 @@
 ### Circuit
 
-<!-- ![Circuit](circuit.png)-->
+![Circuit](circuit.png)
 
 | Symbol | Meaning |
 |:---:|:---:|
