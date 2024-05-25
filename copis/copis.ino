@@ -10,8 +10,8 @@
 # define CONTROL_USED
 # undef CONTROL_USED
 
-const long DEPRESS_TIME = 500;     // in us, 0.5ms
-const long LOCKOUT_TIME = 170000;  // in us, 170ms
+const unsigned long DEPRESS_TIME = 500;     // in us, 0.5ms
+const unsigned long LOCKOUT_TIME = 170000;  // in us, 170ms
 const long RESET_TIME = 3000; // in ms, 3s
 
 const uint8_t SOUND_SIGNAL_PIN = 9;
@@ -49,7 +49,11 @@ void reset() {
 
   reset(&red);
   reset(&green);
-}
+} // end reset
+
+void signalTone() {
+  tone(SOUND_SIGNAL_PIN, 880, 2000);
+} // end signalTone
 
 // checks if attacker made valid hit
 void checkHit(Fencer *att, Fencer *def, unsigned long now) {
@@ -86,10 +90,6 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
 } // end checkHit
 
 void checkBladesTouching() {
-}
-
-void signalTone() {
-  tone(SOUND_SIGNAL_PIN, 880, 2000);
 }
 
 void setup() {
