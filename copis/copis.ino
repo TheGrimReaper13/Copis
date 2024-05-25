@@ -79,11 +79,14 @@ void signalTone() {
 
 // checks if attacker made valid hit
 void checkHit(Fencer *att, Fencer *def, unsigned long now) {
+  
   digitalWrite(att->W_PIN, HIGH);
+
   // check for self hit, we don't need to interrupt anything, just signal that we hit ourself (we probably want to make this so it stays on until reset is called)
   if (digitalRead(att->L_PIN) == HIGH) {
     digitalWrite(att->SELF_HIT_PIN, HIGH);
   }
+
 # ifdef CONTROL_USED
   // check control circuit, if we can't read a signal on the control circuit 
   if (digitalRead(att->C_PIN) == LOW) {
@@ -125,7 +128,6 @@ void setup() {
   pinMode(green.W_PIN, OUTPUT);
   pinMode(red.W_PIN, OUTPUT);
 
-  // digital pins are input by default
   pinMode(HOLD_PIN, INPUT_PULLUP);
   
   pinMode(green.L_PIN, INPUT);
@@ -142,6 +144,9 @@ void setup() {
 
   digitalWrite(green.ERROR_PIN, LOW);
   digitalWrite(red.ERROR_PIN, LOW);
+
+  digitalWrite(green.SELF_HIT_PIN, LOW);
+  digitalWrite(red.SELF_HIT_PIN, LOW);
 }  // end setup
 
 void loop() {
@@ -150,7 +155,7 @@ void loop() {
 
   // check if hold pin is low as we pulled it up
   if (digitalRead(HOLD_PIN) == LOW) {
-    // don't do anything as long as hold toggle is "on" but reset so we can assume operation
+    // don't do anything as long as hold toggle is "on" but reset so we can assume operation normally
     reset();
   }
 # ifdef CONTROL_USED
