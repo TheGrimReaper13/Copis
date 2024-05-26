@@ -10,17 +10,19 @@
 
 */
 
-const unsigned long   DEPRESS_TIME      = 300;     // in us, 0.5ms
+const unsigned long   DEPRESS_TIME      = 500;     // in us, 0.5ms (0.1 - 1ms)
 const unsigned long   LOCKOUT_TIME      = 170000;  // in us, 170ms
 const unsigned long   ERROR_TIME        = 3000;    // in us, 3ms
 const unsigned long   RESET_TIME        = 3000;    // in ms, 3s
-const unsigned long   MIN_WHIPOVER_TIME = 4000;    // in us, 3ms
+const unsigned long   MIN_WHIPOVER_TIME = 4000;    // in us, 4ms
 const unsigned long   MAX_WHIPOVER_TIME = 15000;   // in us, 15ms
+const unsigned int    SIGNAL_FREQUENCY  = 4000;    // in Hz. B7
 
-const uint8_t         SOUND_SIGNAL_PIN  = 9;       // produces square wave and is connected to speaker 
 const uint8_t         HOLD_PIN          = 2;       // toggle switch, probably better to make this a momentary switch and a software toggle
+const uint8_t         SOUND_SIGNAL_PIN  = 9;       // produces square wave and is connected to speaker 
 
-// use defines here to make struct initialization a bit more readible as we can't use implicit initializers :(
+// use macros here to make struct initialization a bit more readible as Arduino IDE doesn't allow the use of implicit initializers :(
+// these really don't need to be const global variables as we only refer to them once
 # define GREEN_WEAPON_PIN   3
 # define RED_WEAPON_PIN     4
 # define GREEN_LAME_PIN     5
@@ -39,6 +41,7 @@ struct Fencer {
   unsigned long lockout_time;   // time when valid hit was made
   unsigned long error_time;     // time when break in control circuit was detected
   unsigned long parry_time;     // time when a both blades made contact
+
   bool          hit;            // we need to be able to remember that a hit was made
   bool          error;          // break in control circuit
   bool          whip_over;      // active whipover protection 
@@ -55,7 +58,8 @@ Fencer green =  { 0, 0, 0, 0, false, false, false, GREEN_WEAPON_PIN,  GREEN_LAME
 Fencer red =    { 0, 0, 0, 0, false, false, false, RED_WEAPON_PIN,    RED_LAME_PIN,   RED_CONTROL_PIN,    RED_SIGNAL_PIN,     RED_ERROR_PIN,    RED_SELF_HIT_PIN };
 
 void reset(Fencer *p) {
-  // W_PIN is always LOW after exiting checkHit
+  // W_PIN should always LOW after exiting checkHit, but set it low just to be sure
+  digitalWrite(p->W_PIN, LOW);
   // turn off signal lights
   digitalWrite(p->SIGNAL_PIN, LOW);
   digitalWrite(p->ERROR_PIN, LOW);
@@ -79,7 +83,7 @@ void reset() {
 } // end reset
 
 void signalTone() {
-  tone(SOUND_SIGNAL_PIN, 880, 2000);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 2000);
 } // end signalTone
 
 // checks if attacker made valid hit
@@ -92,6 +96,7 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
     digitalWrite(att->SELF_HIT_PIN, HIGH);
   }
 
+  // precalculate diff as we need it several times
   const unsigned long parry_diff = now - att->parry_time;
 
   // handle whip over
@@ -101,7 +106,7 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
       att->parry_time = now; 
     }
     // only disable hits with an interval of 4-15ms between the contact of the blades and 
-    else if (parry_diff > MIN_WHIPOVER_TIME && parry_diff <= MAX_WHIPOVER_TIME) {
+    else if (parry_diff >= MIN_WHIPOVER_TIME && parry_diff < MAX_WHIPOVER_TIME) {
 # ifdef WHIP_OVER
       att->whip_over = true;
 # endif
@@ -202,7 +207,7 @@ void loop() {
     reset();
   }
   else if (green.error || red.error) {
-    // if we ecountered error we do tone 
+    // if we ecountered error signal with tone
     signalTone();
     // signal on the corresponding white lamp
     digitalWrite(green.ERROR_PIN, green.error ? HIGH : LOW);
@@ -217,7 +222,7 @@ void loop() {
     // light signal
     digitalWrite(green.SIGNAL_PIN, green.hit ? HIGH : LOW);
     digitalWrite(red.SIGNAL_PIN, red.hit ? HIGH : LOW);
-  
+
     reset();
   }
   else {
