@@ -16,7 +16,7 @@ const unsigned long   ERROR_TIME        = 3000;    // in us, 3ms
 const unsigned long   RESET_TIME        = 3000;    // in ms, 3s
 const unsigned long   MIN_WHIPOVER_TIME = 4000;    // in us, 4ms
 const unsigned long   MAX_WHIPOVER_TIME = 15000;   // in us, 15ms
-const unsigned int    SIGNAL_FREQUENCY  = 4000;    // in Hz. B7
+const unsigned int    SIGNAL_FREQUENCY  = 4000;    // in Hz, B7 note
 
 const uint8_t         HOLD_PIN          = 2;       // toggle switch, probably better to make this a momentary switch and a software toggle
 const uint8_t         SOUND_SIGNAL_PIN  = 9;       // produces square wave and is connected to speaker 
@@ -90,6 +90,7 @@ void signalTone() {
 void checkHit(Fencer *att, Fencer *def, unsigned long now) {
   
   digitalWrite(att->W_PIN, HIGH);
+  // there's a change we need to wait for a very short amount of time to allow reliable signal reading even if it is deformed
 
   // check for self hit, we don't need to interrupt anything, just signal that we hit ourself (we probably want to make this so it stays on until reset is called)
   if (digitalRead(att->L_PIN) == HIGH) {
