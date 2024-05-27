@@ -2,6 +2,8 @@
 
 ![Circuit](circuit.png)
 
+*pin numbers not updated
+
 | Symbol | Meaning |
 |:---:|:---:|
 | Wg | Weapon of "green" fencer |
