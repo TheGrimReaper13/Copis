@@ -2,10 +2,6 @@
   - ignores blades touching for now but doesn't affect other behaviour, no whip-over yet also doesn't account for contact through the blades
   - as micros loops/flows-over after 70min device needs to be restarted (maybe add signal and something to handle a reset in software when it overflows)
 
-  W_PIN: digital output
-  L_PIN: digital input
-  C_PIN: didital input 
-
   - if we touch ourself signal with yellow led, FIE rulebook seems to imply this lamp is directly linked to that state, so it doesn't stay on (maybe just keep it on until reset?)
 
   For the first prototype live test the most likely problem apart from unexpted bugs in the code will be crosstalk and possibly RF interference.
@@ -43,21 +39,22 @@ struct Fencer {
   unsigned long lockout_time;   // time when valid hit was made
   unsigned long error_time;     // time when break in control circuit was detected
   unsigned long parry_time;     // time when a both blades made contact
+  unsigned int  bounce_counter; // prevent whip over protection if contact between blades was lost more than 10 times
 
   bool          hit;            // we need to be able to remember that a hit was made
   bool          error;          // break in control circuit
   bool          whip_over;      // active whipover protection 
 
-  const uint8_t W_PIN;          // C line
-  const uint8_t L_PIN;          // A line
-  const uint8_t C_PIN;          // B line
-  const uint8_t SIGNAL_PIN;     // red/green
-  const uint8_t ERROR_PIN;      // white
-  const uint8_t SELF_HIT_PIN;   // yellow
+  const uint8_t W_PIN;          // C line, weapon
+  const uint8_t L_PIN;          // A line, lame
+  const uint8_t C_PIN;          // B line, weapon
+  const uint8_t SIGNAL_PIN;     // red/green lamp
+  const uint8_t ERROR_PIN;      // white lamp
+  const uint8_t SELF_HIT_PIN;   // yellow lamp
 };
 
-Fencer green =  { 0, 0, 0, 0, false, false, false, GREEN_WEAPON_PIN,  GREEN_LAME_PIN, GREEN_CONTROL_PIN,  GREEN_SIGNAL_PIN,   GREEN_ERROR_PIN,  GREEN_SELF_HIT_PIN };
-Fencer red =    { 0, 0, 0, 0, false, false, false, RED_WEAPON_PIN,    RED_LAME_PIN,   RED_CONTROL_PIN,    RED_SIGNAL_PIN,     RED_ERROR_PIN,    RED_SELF_HIT_PIN };
+Fencer green =  { 0, 0, 0, 0, 0, false, false, false, GREEN_WEAPON_PIN,  GREEN_LAME_PIN, GREEN_CONTROL_PIN,  GREEN_SIGNAL_PIN,   GREEN_ERROR_PIN,  GREEN_SELF_HIT_PIN };
+Fencer red =    { 0, 0, 0, 0, 0, false, false, false, RED_WEAPON_PIN,    RED_LAME_PIN,   RED_CONTROL_PIN,    RED_SIGNAL_PIN,     RED_ERROR_PIN,    RED_SELF_HIT_PIN };
 
 void reset(Fencer *p) {
   // W_PIN should always LOW after exiting checkHit, but set it low just to be sure
@@ -71,6 +68,8 @@ void reset(Fencer *p) {
   p->lockout_time = 0;
   p->error_time = 0;
   p->parry_time = 0;
+
+  p->bounce_counter = 0;
 
   p->hit = false;
   p->error = false;
@@ -143,18 +142,22 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
     }
     // only disable hits with an interval of 4-15ms between the contact of the blades and contact between blade and lame
     else if (parry_diff >= MIN_WHIPOVER_TIME && parry_diff < MAX_WHIPOVER_TIME) {
+# ifdef WHIP_OVER
       att->whip_over = true;
+# endif
     }
   }
-  // no contact between blades so we reset parry timer
-  else {
+  // no contact between blades so we reset parry timer and if parry_time was already set we advance bounce_counter as contact between blades has been lost
+  else if (att->parry_time != 0) {
+    att->bounce_counter++;
     att->parry_time = 0;
   }
 
   // make sure we reset whip_over to false after whip_over time has passed
-  if (att->whip_over && parry_diff > MAX_WHIPOVER_TIME) {
+  if (att->whip_over && (parry_diff > MAX_WHIPOVER_TIME || att->bounce_counter > 10) {
     att->whip_over = false;
     att->parry_time = 0;
+    att->bounce_counter = 0;
   }
 
   // check control circuit, if we can't read a signal on the control circuit for ERROR_TIME we set error flag
