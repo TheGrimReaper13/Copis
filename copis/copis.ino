@@ -8,7 +8,10 @@
 
   - if we touch ourself signal with yellow led, FIE rulebook seems to imply this lamp is directly linked to that state, so it doesn't stay on (maybe just keep it on until reset?)
 
+  For the first prototype live test the most likely problem apart from unexpted bugs in the code will be crosstalk and possibly RF interference.
+
 */
+const uint8_t SYSTEM_ERROR_PIN          = 13;      // on-board LED
 
 const unsigned long   DEPRESS_TIME      = 500;     // in us, 0.5ms (0.1 - 1ms)
 const unsigned long   LOCKOUT_TIME      = 170000;  // in us, 170ms
@@ -18,23 +21,22 @@ const unsigned long   MIN_WHIPOVER_TIME = 4000;    // in us, 4ms
 const unsigned long   MAX_WHIPOVER_TIME = 15000;   // in us, 15ms
 const unsigned int    SIGNAL_FREQUENCY  = 4000;    // in Hz, B7 note
 
-const uint8_t         HOLD_PIN          = 2;       // toggle switch, probably better to make this a momentary switch and a software toggle
-const uint8_t         SOUND_SIGNAL_PIN  = 9;       // produces square wave and is connected to speaker 
+const uint8_t         HOLD_PIN          = A2;       // toggle switch, probably better to make this a momentary switch and a software toggle
+const uint8_t         SOUND_SIGNAL_PIN  = A1;       // produces square wave and is connected to speaker
 
 // use macros here to make struct initialization a bit more readible as Arduino IDE doesn't allow the use of implicit initializers :(
-// these really don't need to be const global variables as we only refer to them once
-# define GREEN_WEAPON_PIN   3
-# define RED_WEAPON_PIN     4
-# define GREEN_LAME_PIN     5
-# define RED_LAME_PIN       6
-# define GREEN_CONTROL_PIN  7
-# define RED_CONTROL_PIN    8
-# define GREEN_SIGNAL_PIN   10
-# define RED_SIGNAL_PIN     11
-# define GREEN_ERROR_PIN    12
-# define RED_ERROR_PIN      13
-# define GREEN_SELF_HIT_PIN A0
-# define RED_SELF_HIT_PIN   A1
+# define GREEN_WEAPON_PIN   2
+# define RED_WEAPON_PIN     3
+# define GREEN_LAME_PIN     4
+# define RED_LAME_PIN       5
+# define GREEN_CONTROL_PIN  6
+# define RED_CONTROL_PIN    7
+# define GREEN_SIGNAL_PIN   8
+# define RED_SIGNAL_PIN     9
+# define GREEN_ERROR_PIN    10
+# define RED_ERROR_PIN      11  
+# define GREEN_SELF_HIT_PIN 12  
+# define RED_SELF_HIT_PIN   A0  // don't use 13 as it's linked to on-board LED, we want to use that for some system error signaling
 
 struct Fencer {
   unsigned long depressed_time; // time when contact was made
@@ -86,13 +88,46 @@ void signalTone() {
   tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 2000);
 } // end signalTone
 
+// use these 2 mainly for prototype when we don't have easily visible LEDs yet, use signalTone for simultanious hit
+// we could use loops here but compiler would probably unroll these anyways and it's easy enough to understand them anyways
+void signalToneGreen() {
+  // slow beeping
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
+  delay(500);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
+  delay(500);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
+  delay(500);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
+} // end signalToneGreen
+
+void signalToneRed() {
+  // fast beeping
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
+  delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
+  delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
+  delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
+  delay(250);
+
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
+  delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
+  delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
+  delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
+} // end signalToneRed
+
 // checks if attacker made valid hit
 void checkHit(Fencer *att, Fencer *def, unsigned long now) {
   
   digitalWrite(att->W_PIN, HIGH);
   // there's a change we need to wait for a very short amount of time to allow reliable signal reading even if it is deformed
 
-  // check for self hit, we don't need to interrupt anything, just signal that we hit ourself (we probably want to make this so it stays on until reset is called)
+  // check for self hit, we don't need to interrupt anything, just signal (we probably want to make this so it stays on until reset is called)
   if (digitalRead(att->L_PIN) == HIGH) {
     digitalWrite(att->SELF_HIT_PIN, HIGH);
   }
@@ -106,11 +141,9 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
     if (att->parry_time == 0) {
       att->parry_time = now; 
     }
-    // only disable hits with an interval of 4-15ms between the contact of the blades and 
+    // only disable hits with an interval of 4-15ms between the contact of the blades and contact between blade and lame
     else if (parry_diff >= MIN_WHIPOVER_TIME && parry_diff < MAX_WHIPOVER_TIME) {
-# ifdef WHIP_OVER
       att->whip_over = true;
-# endif
     }
   }
   // no contact between blades so we reset parry timer
@@ -205,7 +238,7 @@ void loop() {
   // check if hold pin is low as we pulled it up
   if (digitalRead(HOLD_PIN) == LOW) {
     // don't do anything as long as hold toggle is "on" but reset so we can assume operation normally
-    reset();
+    reset(); 
   }
   else if (green.error || red.error) {
     // if we ecountered error signal with tone
