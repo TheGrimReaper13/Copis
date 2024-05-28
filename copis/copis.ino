@@ -11,7 +11,7 @@ const uint8_t SYSTEM_ERROR_PIN          = 13;      // on-board LED
 
 const unsigned long   DEPRESS_TIME      = 500;     // in us, 0.5ms (0.1 - 1ms)
 const unsigned long   LOCKOUT_TIME      = 170000;  // in us, 170ms
-const unsigned long   CBREAK_TIME        = 3000;    // in us, 3ms
+const unsigned long   CBREAK_TIME       = 3000;    // in us, 3ms
 const unsigned long   RESET_TIME        = 3000;    // in ms, 3s
 const unsigned long   MIN_WHIPOVER_TIME = 4000;    // in us, 4ms
 const unsigned long   MAX_WHIPOVER_TIME = 15000;   // in us, 15ms
@@ -170,7 +170,7 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
     if (att->cbreak_time == 0) {
       att->cbreak_time = now;
     }
-    else if (!att->error && (now - att->cbreak_time) > CBREAK_TIME) {
+    else if ((now - att->cbreak_time) > CBREAK_TIME) {
       att->error = true;
     }
   }
@@ -243,7 +243,14 @@ void loop() {
     // don't do anything as long as hold toggle is "on" but reset so we can assume operation normally
     reset(); 
   }
-  else if (green.error || red.error) {
+  else {
+    // check if green made valid hit
+    checkHit(&green, &red, now);
+    // check if red made valid hit
+    checkHit(&red, &green, now);
+  }
+  
+  if (green.error || red.error) {
     // if we ecountered error signal with tone
     signalTone();
     // signal on the corresponding white lamp
@@ -270,11 +277,5 @@ void loop() {
     }
 
     reset();
-  }
-  else {
-    // check if green made valid hit
-    checkHit(&green, &red, now);
-    // check if red made valid hit
-    checkHit(&red, &green, now);
   }
 }  // end loop
