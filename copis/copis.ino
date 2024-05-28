@@ -160,7 +160,7 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
   }
 
   
-  if (att->cbreak_time != 0 && digitalRead(att->C_PIN) == LOW) {
+  if (att->cbreak_time != 0 && digitalRead(att->C_PIN) == HIGH) {
     att->cbreak_time = 0;
   }
 
@@ -174,7 +174,6 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
       att->error = true;
     }
   }
-
   // only make reading if whip_over protection is not active
   // if we can read HIGH on red L_PIN there should be contact between greens weapon and reds lame
   // this can't be true if C_PIN read low
