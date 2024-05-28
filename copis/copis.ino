@@ -11,11 +11,11 @@ const uint8_t SYSTEM_ERROR_PIN          = 13;      // on-board LED
 
 const unsigned long   DEPRESS_TIME      = 500;     // in us, 0.5ms (0.1 - 1ms)
 const unsigned long   LOCKOUT_TIME      = 170000;  // in us, 170ms
-const unsigned long   ERROR_TIME        = 3000;    // in us, 3ms
+const unsigned long   CBREAK_TIME        = 3000;    // in us, 3ms
 const unsigned long   RESET_TIME        = 3000;    // in ms, 3s
 const unsigned long   MIN_WHIPOVER_TIME = 4000;    // in us, 4ms
 const unsigned long   MAX_WHIPOVER_TIME = 15000;   // in us, 15ms
-const unsigned int    SIGNAL_FREQUENCY  = 4000;    // in Hz, B7 note
+const unsigned int    SIGNAL_FREQUENCY  = 3000;    // in Hz, B7 note
 
 const uint8_t         HOLD_PIN          = A2;       // toggle switch, probably better to make this a momentary switch and a software toggle
 const uint8_t         SOUND_SIGNAL_PIN  = A1;       // produces square wave and is connected to speaker
@@ -32,12 +32,12 @@ const uint8_t         SOUND_SIGNAL_PIN  = A1;       // produces square wave and 
 # define GREEN_ERROR_PIN    10
 # define RED_ERROR_PIN      11  
 # define GREEN_SELF_HIT_PIN 12  
-# define RED_SELF_HIT_PIN   A0  // don't use 13 as it's linked to on-board LED, we want to use that for some system error signaling
+# define RED_SELF_HIT_PIN   A0  // don't use 13 as it's linked to on-board LED, we want to use that for system error signaling and
 
 struct Fencer {
   unsigned long depressed_time; // time when contact was made
   unsigned long lockout_time;   // time when valid hit was made
-  unsigned long error_time;     // time when break in control circuit was detected
+  unsigned long cbreak_time;     // time when break in control circuit was detected
   unsigned long parry_time;     // time when a both blades made contact
   unsigned int  bounce_counter; // prevent whip over protection if contact between blades was lost more than 10 times
 
@@ -66,7 +66,7 @@ void reset(Fencer *p) {
 
   p->depressed_time = 0;
   p->lockout_time = 0;
-  p->error_time = 0;
+  p->cbreak_time = 0;
   p->parry_time = 0;
 
   p->bounce_counter = 0;
@@ -133,7 +133,6 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
 
   // precalculate diff as we need it several times
   const unsigned long parry_diff = now - att->parry_time;
-
   // handle whip over
   if (digitalRead(def->C_PIN) == HIGH) {
     // start timer
@@ -154,22 +153,28 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
   }
 
   // make sure we reset whip_over to false after whip_over time has passed
-  if (att->whip_over && (parry_diff > MAX_WHIPOVER_TIME || att->bounce_counter > 10) {
+  if (att->whip_over && (parry_diff > MAX_WHIPOVER_TIME || att->bounce_counter > 10)) {
     att->whip_over = false;
     att->parry_time = 0;
     att->bounce_counter = 0;
   }
 
-  // check control circuit, if we can't read a signal on the control circuit for ERROR_TIME we set error flag
+  
+  if (att->cbreak_time != 0 && digitalRead(att->C_PIN) == LOW) {
+    att->cbreak_time = 0;
+  }
+
+  // check control circuit, if we can't read a signal on the control circuit for CBREAK_TIME we set error flag
   if (digitalRead(att->C_PIN) == LOW) {
     // start timer
-    if (att->error_time == 0) {
-      att->error_time = now;
+    if (att->cbreak_time == 0) {
+      att->cbreak_time = now;
     }
-    else if (!att->error && (now - att->error_time) > ERROR_TIME) {
+    else if (!att->error && (now - att->cbreak_time) > CBREAK_TIME) {
       att->error = true;
     }
   }
+
   // only make reading if whip_over protection is not active
   // if we can read HIGH on red L_PIN there should be contact between greens weapon and reds lame
   // this can't be true if C_PIN read low
@@ -191,10 +196,6 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
   // contact lost so we reset depressed time, this will also be called if whip_over is active
   else {
     att->depressed_time = 0;
-  }
-
-  if (att->error_time != 0 && digitalRead(att->C_PIN) == HIGH) {
-    att->error_time = 0;
   }
 
   digitalWrite(att->W_PIN, LOW);
@@ -254,11 +255,20 @@ void loop() {
   }
   // if at least one player made a hit we can check if lockout time has expired, if so we can signal hits and reset the routine
   else if ((green.hit && (now - green.lockout_time) > LOCKOUT_TIME) || (red.hit && (now - red.lockout_time) > LOCKOUT_TIME)) {
-    // sound signal
-    signalTone();
-    // light signal
+      // light signal
     digitalWrite(green.SIGNAL_PIN, green.hit ? HIGH : LOW);
     digitalWrite(red.SIGNAL_PIN, red.hit ? HIGH : LOW);
+    
+    // sound signal
+    if (green.hit && red.hit) {
+      signalTone();
+    }
+    else if (green.hit) {
+      signalToneGreen();
+    }
+    else if (red.hit) {
+      signalToneRed();
+    }
 
     reset();
   }
