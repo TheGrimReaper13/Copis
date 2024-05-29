@@ -7,17 +7,18 @@
   For the first prototype live test the most likely problem apart from unexpted bugs in the code will be crosstalk and possibly RF interference.
 
 */
-const uint8_t SYSTEM_ERROR_PIN          = 13;      // on-board LED
+const uint8_t SYSTEM_ERROR_PIN          = 13;      // on-board LED, use it if we need to signal system errors or such
 
-const unsigned long   DEPRESS_TIME      = 500;     // in us, 0.5ms (0.1 - 1ms)
-const unsigned long   LOCKOUT_TIME      = 170000;  // in us, 170ms
-const unsigned long   CBREAK_TIME       = 3000;    // in us, 3ms
-const unsigned long   RESET_TIME        = 3000;    // in ms, 3s
-const unsigned long   MIN_WHIPOVER_TIME = 4000;    // in us, 4ms
-const unsigned long   MAX_WHIPOVER_TIME = 15000;   // in us, 15ms
-const unsigned int    SIGNAL_FREQUENCY  = 3000;    // in Hz, B7 note
+const unsigned long   DEPRESS_TIME      = 500;    // in us, 0.5ms (0.1 - 1ms)
+const unsigned long   LOCKOUT_TIME      = 170000; // in us, 170ms
+const unsigned long   CBREAK_TIME       = 3000;   // in us, 3ms
+const unsigned long   RESET_TIME        = 3000;   // in ms, 3s
+const unsigned long   SELF_HIT_TIME     = 500000; // in us, 0.5s
+const unsigned long   MIN_WHIPOVER_TIME = 4000;   // in us, 4ms
+const unsigned long   MAX_WHIPOVER_TIME = 15000;  // in us, 15ms
+const unsigned int    SIGNAL_FREQUENCY  = 3000;   // in Hz
 
-const uint8_t         HOLD_PIN          = A2;       // toggle switch, probably better to make this a momentary switch and a software toggle
+const uint8_t         HOLD_PIN          = A2;       // toggle switch, probably better to make this a momentary switch and a software toggle, could also just be replaced with a power switch
 const uint8_t         SOUND_SIGNAL_PIN  = A1;       // produces square wave and is connected to speaker
 
 // use macros here to make struct initialization a bit more readible as Arduino IDE doesn't allow the use of implicit initializers :(
@@ -32,16 +33,17 @@ const uint8_t         SOUND_SIGNAL_PIN  = A1;       // produces square wave and 
 # define GREEN_ERROR_PIN    10
 # define RED_ERROR_PIN      11  
 # define GREEN_SELF_HIT_PIN 12  
-# define RED_SELF_HIT_PIN   A0  // don't use 13 as it's linked to on-board LED, we want to use that for system error signaling and
+# define RED_SELF_HIT_PIN   A0  // don't use 13 as it's linked to on-board LED
 
 struct Fencer {
   unsigned long depressed_time; // time when contact was made
   unsigned long lockout_time;   // time when valid hit was made
-  unsigned long cbreak_time;     // time when break in control circuit was detected
+  unsigned long cbreak_time;    // time when break in control circuit was detected
   unsigned long parry_time;     // time when a both blades made contact
+  unsigned long self_hit_time;  // remember time when we hit ourself so we can keep the light on for a SELF_HIT_TIME
   unsigned int  bounce_counter; // prevent whip over protection if contact between blades was lost more than 10 times
 
-  bool          hit;            // we need to be able to remember that a hit was made
+  bool          hit;            // valid hit was made
   bool          error;          // break in control circuit
   bool          whip_over;      // active whipover protection 
 
@@ -53,8 +55,19 @@ struct Fencer {
   const uint8_t SELF_HIT_PIN;   // yellow lamp
 };
 
-Fencer green =  { 0, 0, 0, 0, 0, false, false, false, GREEN_WEAPON_PIN,  GREEN_LAME_PIN, GREEN_CONTROL_PIN,  GREEN_SIGNAL_PIN,   GREEN_ERROR_PIN,  GREEN_SELF_HIT_PIN };
-Fencer red =    { 0, 0, 0, 0, 0, false, false, false, RED_WEAPON_PIN,    RED_LAME_PIN,   RED_CONTROL_PIN,    RED_SIGNAL_PIN,     RED_ERROR_PIN,    RED_SELF_HIT_PIN };
+Fencer green = { 
+  0, 0, 0, 0, 0, 0,
+  false, false, false,
+  GREEN_WEAPON_PIN, GREEN_LAME_PIN,  GREEN_CONTROL_PIN,
+  GREEN_SIGNAL_PIN, GREEN_ERROR_PIN, GREEN_SELF_HIT_PIN
+};
+
+Fencer red = { 
+  0, 0, 0, 0, 0, 0,
+  false, false, false,
+  RED_WEAPON_PIN, RED_LAME_PIN,   RED_CONTROL_PIN,
+  RED_SIGNAL_PIN, RED_ERROR_PIN,  RED_SELF_HIT_PIN
+};
 
 void reset(Fencer *p) {
   // W_PIN should always LOW after exiting checkHit, but set it low just to be sure
