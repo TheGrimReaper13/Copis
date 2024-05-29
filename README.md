@@ -19,7 +19,7 @@ A line is connected through the lame to an input on our microcontroller, B line 
 - behaves as expected on bench
 - first live test was cut short because I accidentally switched Lame with one of the Weapon lines
 - apart from the wrong wiring it seemed to perform as expected
-- more live tests needed
+- more live tests needed especially to test reliability
 
 ### Resources 
 
