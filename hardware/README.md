@@ -27,4 +27,5 @@
 | Socket | 4mm | 6 |
 
 *Use LED resistor value according to the LED used and brightness needed.
+
 ** I am currently using a 8 Ohm 0.25W speaker which seems to run fine on it's own. Higher wattage speakers will need a small amplifier as the Arduino won't be able to provide enough current from it's digital pin.
