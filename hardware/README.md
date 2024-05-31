@@ -26,6 +26,6 @@
 | Switch | Toggle | 1 |
 | Socket | 4mm | 6 |
 
-*Use LED resistor value according to the LED used and brightness needed.
+*Use LED resistor value according to the LED used and brightness needed. Higher power LED/Lamps might need transistor as digital pins can only supply a limited amount of current (40mA on each pin, 200mA total)
 
 ** I am currently using a 8 Ohm 0.25W speaker which seems to run fine on it's own. Higher wattage speakers will need a small amplifier as the Arduino won't be able to provide enough current from it's digital pin.

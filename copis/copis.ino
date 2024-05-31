@@ -38,7 +38,7 @@ struct Fencer {
   unsigned long lockout_time;   // time when valid hit was made
   unsigned long cbreak_time;    // time when break in control circuit was detected
   unsigned long parry_time;     // time when a both blades made contact
-  unsigned long self_hit_time;  // remember time when we hit ourself so we can keep the light on for a SELF_HIT_TIME
+  unsigned long self_hit_time;  // remember time when we hit ourself so we can keep the light on for SELF_HIT_TIME
   unsigned int  bounce_counter; // prevent whip over protection if contact between blades was lost more than 10 times
 
   bool          hit;            // valid hit was made
@@ -103,32 +103,21 @@ void signalTone() {
 // we could use loops here but compiler would probably unroll these anyways and it's easy enough to understand them anyways
 void signalToneGreen() {
   // slow beeping
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
-  delay(500);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
-  delay(500);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
-  delay(500);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250); delay(500);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250); delay(500);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250); delay(500);
   tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
 } // end signalToneGreen
 
 void signalToneRed() {
   // fast beeping
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
-  delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
-  delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
-  delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
-  delay(250);
-
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
-  delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
-  delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
-  delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
   tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
 } // end signalToneRed
 
