@@ -54,6 +54,32 @@ struct Fencer {
   const uint8_t SELF_HIT_PIN;   // yellow lamp
 };
 
+void signalTone() {
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, SOUND_LENGTH);
+} // end signalTone
+
+// use these 2 mainly for prototype when we don't have easily visible LEDs yet, use signalTone for simultanious hit
+// we could use loops here but compiler would probably unroll these anyways and it's easy enough to understand them anyways
+void signalToneGreen() {
+  // slow beeping
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250); delay(500);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250); delay(500);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250); delay(500);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
+} // end signalToneGreen
+
+void signalToneRed() {
+  // fast beeping
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
+} // end signalToneRed
+
 void reset(Fencer *p) {
   // W_PIN should always LOW after exiting checkHit, but set it low just to be sure
   digitalWrite(p->W_PIN, LOW);
@@ -82,32 +108,6 @@ void resetForNextHit(Fencer *a, Fencer *b) {
   reset(b);
 } // end reset
 
-void signalTone() {
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, SOUND_LENGTH);
-} // end signalTone
-
-// use these 2 mainly for prototype when we don't have easily visible LEDs yet, use signalTone for simultanious hit
-// we could use loops here but compiler would probably unroll these anyways and it's easy enough to understand them anyways
-void signalToneGreen() {
-  // slow beeping
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250); delay(500);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250); delay(500);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250); delay(500);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
-} // end signalToneGreen
-
-void signalToneRed() {
-  // fast beeping
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
-} // end signalToneRed
-
 // checks if attacker made valid hit
 void checkHit(Fencer *att, Fencer *def, unsigned long now) {
   
@@ -122,9 +122,10 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
     att->self_hit_time = 0;
   }
 
-  // precalculate diff as we need it several times
-  const unsigned long parry_diff = now - att->parry_time;
-  // handle whip over
+  // Whip-over
+  const unsigned long parry_diff = now - att->parry_time;  // save diff as constant as we need it several times
+
+  // 
   if (digitalRead(def->C_PIN) == HIGH) {
     // start timer
     if (att->parry_time == 0) {
@@ -140,7 +141,7 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
   // no contact between blades so we reset parry timer and if parry_time was already set we advance bounce_counter as contact between blades has been lost
   else if (att->parry_time != 0) {
     att->bounce_counter++;
-    att->parry_time = 0;
+    //att->parry_time = 0;
   }
 
   // make sure we reset whip_over to false after whip_over time has passed
