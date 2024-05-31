@@ -2,7 +2,7 @@
 
   COPIS - 0.2
   A simple DIY wired scoring box for saber fencing based on Arduino
-  
+
 */
 const uint8_t SYSTEM_ERROR_PIN          = 13;      // on-board LED, use it if we need to signal system errors or such
 
@@ -89,11 +89,11 @@ void reset(Fencer *p) {
   p->whip_over = false;
 } // end reset
 
-void resetForNextHit() {
+void resetForNextHit(Fencer *a, Fencer *b) {
   delay(RESET_TIME);
 
-  reset(&red);
-  reset(&green);
+  reset(a);
+  reset(b);
 } // end reset
 
 void signalTone() {
@@ -209,29 +209,43 @@ void setup() {
   pinMode(HOLD_PIN, INPUT_PULLUP);
   pinMode(SOUND_SIGNAL_PIN, OUTPUT);
 
-  pinMode(green.L_PIN, INPUT);            pinMode(red.L_PIN, INPUT);
-  pinMode(green.C_PIN, INPUT);            pinMode(red.C_PIN, INPUT);
+  pinMode(GREEN_LAME_PIN, INPUT);         pinMode(RED_LAME_PIN, INPUT);
+  pinMode(GREEN_CONTROL_PIN, INPUT);      pinMode(RED_CONTROL_PIN, INPUT);
 
-  pinMode(green.W_PIN, OUTPUT);           pinMode(red.W_PIN, OUTPUT);
-  pinMode(green.SIGNAL_PIN, OUTPUT);      pinMode(red.SIGNAL_PIN, OUTPUT);
-  pinMode(green.ERROR_PIN, OUTPUT);       pinMode(red.ERROR_PIN, OUTPUT);
-  pinMode(green.SELF_HIT_PIN, OUTPUT);    pinMode(red.SELF_HIT_PIN, OUTPUT);
+  pinMode(GREEN_WEAPON_PIN, OUTPUT);      pinMode(RED_WEAPON_PIN, OUTPUT);
+  pinMode(GREEN_SIGNAL_PIN, OUTPUT);      pinMode(RED_SIGNAL_PIN, OUTPUT);
+  pinMode(GREEN_ERROR_PIN, OUTPUT);       pinMode(RED_ERROR_PIN, OUTPUT);
+  pinMode(GREEN_SELF_HIT_PIN, OUTPUT);    pinMode(RED_SELF_HIT_PIN, OUTPUT);
 
 
-  digitalWrite(green.W_PIN, LOW);         digitalWrite(red.W_PIN, LOW);
-  digitalWrite(green.SIGNAL_PIN, LOW);    digitalWrite(red.SIGNAL_PIN, LOW);
-  digitalWrite(green.ERROR_PIN, LOW);     digitalWrite(red.ERROR_PIN, LOW);
-  digitalWrite(green.SELF_HIT_PIN, LOW);  digitalWrite(red.SELF_HIT_PIN, LOW);
+  digitalWrite(GREEN_WEAPON_PIN, LOW);    digitalWrite(RED_WEAPON_PIN, LOW);
+  digitalWrite(GREEN_SIGNAL_PIN, LOW);    digitalWrite(RED_SIGNAL_PIN, LOW);
+  digitalWrite(GREEN_ERROR_PIN, LOW);     digitalWrite(RED_ERROR_PIN, LOW);
+  digitalWrite(GREEN_SELF_HIT_PIN, LOW);  digitalWrite(RED_SELF_HIT_PIN, LOW);
 }  // end setup
 
 void loop() {
+
+    static Fencer green = { 
+    0, 0, 0, 0, 0, 0,
+    false, false, false,
+    GREEN_WEAPON_PIN, GREEN_LAME_PIN,   GREEN_CONTROL_PIN,
+    GREEN_SIGNAL_PIN, GREEN_ERROR_PIN,  GREEN_SELF_HIT_PIN
+  };
+
+  static Fencer red = { 
+    0, 0, 0, 0, 0, 0,
+    false, false, false,
+    RED_WEAPON_PIN,   RED_LAME_PIN,     RED_CONTROL_PIN,
+    RED_SIGNAL_PIN,   RED_ERROR_PIN,    RED_SELF_HIT_PIN
+  };
 
   const unsigned long now = micros();
 
   // check if hold pin is low as we pulled it up
   if (digitalRead(HOLD_PIN) == LOW) {
     // don't do anything as long as hold toggle is "on" but reset so we can assume operation normally
-    resetForNextHit();
+    resetForNextHit(&green, &red);
     return;
   }
   else {
@@ -252,7 +266,7 @@ void loop() {
     digitalWrite(green.ERROR_PIN, green.error ? HIGH : LOW);
     digitalWrite(red.ERROR_PIN, red.error ? HIGH : LOW);
     // then again reset everything
-    resetForNextHit();
+    resetForNextHit(&green, &red);
   }
   // if at least one player made a hit we can check if lockout time has expired, if so we can signal hits and reset the routine
   else if ((green.hit && (now - green.lockout_time) > LOCKOUT_TIME) || (red.hit && (now - red.lockout_time) > LOCKOUT_TIME)) {
@@ -271,6 +285,6 @@ void loop() {
       signalToneRed();
     }
 
-    resetForNextHit();
+    resetForNextHit(&green, &red);
   }
 }  // end loop
