@@ -54,20 +54,6 @@ struct Fencer {
   const uint8_t SELF_HIT_PIN;   // yellow lamp
 };
 
-Fencer green = { 
-  0, 0, 0, 0, 0, 0,
-  false, false, false,
-  GREEN_WEAPON_PIN, GREEN_LAME_PIN,   GREEN_CONTROL_PIN,
-  GREEN_SIGNAL_PIN, GREEN_ERROR_PIN,  GREEN_SELF_HIT_PIN
-};
-
-Fencer red = { 
-  0, 0, 0, 0, 0, 0,
-  false, false, false,
-  RED_WEAPON_PIN,   RED_LAME_PIN,     RED_CONTROL_PIN,
-  RED_SIGNAL_PIN,   RED_ERROR_PIN,    RED_SELF_HIT_PIN
-};
-
 void reset(Fencer *p) {
   // W_PIN should always LOW after exiting checkHit, but set it low just to be sure
   digitalWrite(p->W_PIN, LOW);
