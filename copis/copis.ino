@@ -12,6 +12,7 @@ const unsigned long   CBREAK_TIME       = 3000;   // in us, 3ms
 const unsigned long   SELF_HIT_TIME     = 500000; // in us, 0.5s
 const unsigned long   MIN_WHIPOVER_TIME = 4000;   // in us, 4ms
 const unsigned long   MAX_WHIPOVER_TIME = 15000;  // in us, 15ms
+const unsigned int    MAX_BOUNCES       = 10;     // max amount of times contact can be lost during parry while still protecting against whipover
 
 const unsigned long   RESET_TIME        = 3000;   // in ms, 3s
 const unsigned int    SIGNAL_FREQUENCY  = 3000;   // in Hz
@@ -125,9 +126,9 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
   // Whip-over
   const unsigned long parry_diff = now - att->parry_time;  // save diff as constant as we need it several times
 
-  // 
+  // check if blades made contact
   if (digitalRead(def->C_PIN) == HIGH) {
-    // start timer
+    // start timer first time we made contact
     if (att->parry_time == 0) {
       att->parry_time = now; 
     }
@@ -138,17 +139,23 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
 # endif
     }
   }
+  // if bounce_couner > 0, parry_diff will always be in intented range
+  else if ((att->bounce_counter > 0 && att->bounce_counter < MAX_BOUNCES) && (parry_diff >= MIN_WHIPOVER_TIME && parry_diff < MAX_WHIPOVER_TIME)) {
+# ifdef WHIP_OVER
+    att->whip_over = true;
+# endif
+  }
   // no contact between blades so we reset parry timer and if parry_time was already set we advance bounce_counter as contact between blades has been lost
   else if (att->parry_time != 0) {
     att->bounce_counter++;
     //att->parry_time = 0;
   }
 
-  // make sure we reset whip_over to false after whip_over time has passed
-  if (att->whip_over && (parry_diff > MAX_WHIPOVER_TIME || att->bounce_counter > 10)) {
-    att->whip_over = false;
+  // reset if no hit was made after whip_over time has passed or contact between blades was interrupted more than 10 times
+  if (parry_diff > MAX_WHIPOVER_TIME || att->bounce_counter > MAX_BOUNCES) {
     att->parry_time = 0;
     att->bounce_counter = 0;
+    att->whip_over = false;
   }
 
   // reset cbreak time if we can detect a signal again
