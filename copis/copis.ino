@@ -2,7 +2,6 @@
 
   COPIS - 0.2
   A simple DIY wired scoring box for saber fencing based on Arduino
-  
 */
 const uint8_t SYSTEM_ERROR_PIN          = 13;      // on-board LED, use it if we need to signal system errors or such
 
