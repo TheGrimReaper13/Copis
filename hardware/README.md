@@ -18,13 +18,13 @@
 | Resistor | 1k | 2 |
 | Resistor | 220* | 6 |
 | Diode | Zener | 2 |
-| LED | Green | 1 |
-| LED | Red | 1 |
-| LED | White | 2 |
-| LED | Yellow | 2 |
+| LED | Green 10mm | 1 |
+| LED | Red 10mm | 1 |
+| LED | White 10mm | 2 |
+| LED | Yellow 10mm | 2 |
 | Speaker/Buzzer | any small speaker or buzzer will do** | 1 |
 | Switch | Toggle | 1 |
-| Socket | 4mm | 6 |
+| LED Socket | 10mm | 6 |
 
 *Use LED resistor value according to the LED used and brightness needed. Higher power LED/Lamps might need transistor as digital pins can only supply a limited amount of current (40mA on each pin, 200mA total)
 
