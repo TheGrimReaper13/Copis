@@ -16,7 +16,7 @@ The electrical circuit can not be much simpler. We only use some resistors to pu
 A line is connected through the lame to an input on our microcontroller, B line is the control and connected to the weapon as well as an input and C is the "power" line connected to the weapon and an output.
 ### Current State
 
-- behaves as expected on bench
+- behaves as expected on bench (whip-over fully implemented but not tested)
 - first live test was cut short because I accidentally switched Lame with one of the Weapon lines
 - apart from the wrong wiring it seemed to perform as expected
 - more live tests needed especially to test reliability
