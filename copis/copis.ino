@@ -4,7 +4,7 @@
   A simple DIY wired scoring box for saber fencing based on Arduino
 
 */
-const uint8_t SYSTEM_ERROR_PIN          = 13;      // on-board LED, use it if we need to signal system errors or such
+const uint8_t SYSTEM_ERROR_PIN          = 13;     // on-board LED, use it if we need to signal system errors or such
 
 const unsigned long   DEPRESS_TIME      = 400;    // in us, 0.4ms (0.1 - 1ms)
 const unsigned long   LOCKOUT_TIME      = 170000; // in us, 170ms
