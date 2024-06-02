@@ -4,6 +4,7 @@
   A simple DIY wired scoring box for saber fencing based on Arduino
 
 */
+
 const uint8_t SYSTEM_ERROR_PIN          = 13;     // on-board LED, use it if we need to signal system errors or such
 
 const unsigned long   DEPRESS_TIME      = 400;    // in us, 0.4ms (0.1 - 1ms)
@@ -243,9 +244,7 @@ void loop() {
   // check if green made valid hit
   checkHit(&green, &red, now);
   // check if red made valid hit
-  if (!green.error) {
-    checkHit(&red, &green, now);
-  }
+  checkHit(&red, &green, now);
 
   // signal self hits
   digitalWrite(green.SELF_HIT_PIN, green.self_hit_time != 0 ? HIGH : LOW);
@@ -257,7 +256,7 @@ void loop() {
     // signal on the corresponding white lamp
     digitalWrite(green.ERROR_PIN, green.error ? HIGH : LOW);
     digitalWrite(red.ERROR_PIN, red.error ? HIGH : LOW);
-    // then again reset everything
+    // then reset everything
     resetForNextHit(&green, &red);
   }
   // if at least one player made a hit we can check if lockout time has expired, if so we can signal hits and reset the routine
