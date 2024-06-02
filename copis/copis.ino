@@ -21,7 +21,7 @@ unsigned long         SOUND_LENGTH      = 2000;   // in ms, 2s
 const uint8_t         SOUND_SIGNAL_PIN  = A1;     // produces square wave and is connected to speaker
 const uint8_t         HOLD_PIN          = A2;     // toggle switch, probably better to make this a momentary switch and a software toggle, could also just be replaced with a power switch
 
-// use macros here to make struct initialization a bit more readible as Arduino IDE doesn't allow the use of specified initializers :(
+// use macros here to make struct initialization a bit more readible as Arduino IDE doesn't allow the use of specified initializers for members :(
 # define GREEN_WEAPON_PIN   2
 # define RED_WEAPON_PIN     3
 # define GREEN_LAME_PIN     4
