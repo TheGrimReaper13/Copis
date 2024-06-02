@@ -60,24 +60,21 @@ void signalTone() {
 } // end signalTone
 
 // use these 2 mainly for prototype when we don't have easily visible LEDs yet, use signalTone for simultanious hit
-// we could use loops here but compiler would probably unroll these anyways and it's easy enough to understand them anyways
 void signalToneGreen() {
   // slow beeping
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250); delay(500);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250); delay(500);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250); delay(500);
+  for (int i = 0 ; i < 3 ; i++) {
+    tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
+    delay(500);
+  }
   tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
 } // end signalToneGreen
 
 void signalToneRed() {
   // fast beeping
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124); delay(250);
+  for (int i = 0 ; i < 7 ; i++) {
+    tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
+    delay(250);
+  }
   tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
 } // end signalToneRed
 
@@ -220,7 +217,7 @@ void setup() {
 
 void loop() {
 
-    static Fencer green = { 
+  static Fencer green = { 
     0, 0, 0, 0, 0, 0,
     false, false, false,
     GREEN_WEAPON_PIN, GREEN_LAME_PIN,   GREEN_CONTROL_PIN,
@@ -236,17 +233,19 @@ void loop() {
 
   const unsigned long now = micros();
 
-  // check if hold pin is low as we pulled it up
-  if (digitalRead(HOLD_PIN) == LOW) {
+  // need to check for LOW as we are pulling pin up
+  if (digitalRead(HOLD_PIN) == LOW) { 
     // don't do anything as long as hold toggle is "on" but reset so we can assume operation normally
     resetForNextHit(&green, &red);
     return;
   }
-
+ 
   // check if green made valid hit
   checkHit(&green, &red, now);
   // check if red made valid hit
-  checkHit(&red, &green, now);
+  if (!green.error) {
+    checkHit(&red, &green, now);
+  }
 
   // signal self hits
   digitalWrite(green.SELF_HIT_PIN, green.self_hit_time != 0 ? HIGH : LOW);
