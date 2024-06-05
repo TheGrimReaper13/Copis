@@ -4,7 +4,6 @@
   A simple DIY wired scoring box for saber fencing based on Arduino
 
 */
-
 const uint8_t SYSTEM_ERROR_PIN          = 13;     // on-board LED, use it if we need to signal system errors or such
 
 const unsigned long   DEPRESS_TIME      = 400;    // in us, 0.4ms (0.1 - 1ms)
@@ -121,7 +120,7 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
     att->self_hit_time = 0;
   }
 
-  // Whip-over
+  // handle whip-over protection
   const unsigned long parry_diff = now - att->parry_time;  // save diff as constant as we need it several times
 
   // check if blades made contact
@@ -130,23 +129,10 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
     if (att->parry_time == 0) {
       att->parry_time = now; 
     }
-    // only disable hits with an interval of 4-15ms between the contact of the blades and contact between blade and lame
-    else if (parry_diff >= MIN_WHIPOVER_TIME && parry_diff < MAX_WHIPOVER_TIME) {
-# ifdef WHIP_OVER
-      att->whip_over = true;
-# endif
-    }
   }
-  // if bounce_couner > 0, parry_diff will always be in intented range
-  else if ((att->bounce_counter > 0 && att->bounce_counter < MAX_BOUNCES) && (parry_diff >= MIN_WHIPOVER_TIME && parry_diff < MAX_WHIPOVER_TIME)) {
-# ifdef WHIP_OVER
-    att->whip_over = true;
-# endif
-  }
-  // no contact between blades so we reset parry timer and if parry_time was already set we advance bounce_counter as contact between blades has been lost
+  // if there is no contact between the blades and parry_time is "running" we advance the bounce counter
   else if (att->parry_time != 0) {
     att->bounce_counter++;
-    //att->parry_time = 0;
   }
 
   // reset if no hit was made after whip_over time has passed or contact between blades was interrupted more than 10 times
@@ -155,13 +141,17 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
     att->bounce_counter = 0;
     att->whip_over = false;
   }
+  // prevent hits from registering while in the parameters for whipover protection
+  else if (parry_diff >= MIN_WHIPOVER_TIME && parry_diff <= MAX_WHIPOVER_TIME && att->bounce_counter <= MAX_BOUNCES) {
+    att->whip_over = true;
+  }
 
   // reset cbreak time if we can detect a signal again
   if (digitalRead(att->C_PIN) == HIGH) {
     att->cbreak_time = 0;
   }
 
-  // check control circuit, if we can't read a signal on the control circuit for CBREAK_TIME we set error flag
+  // handle break in control circuit, if we can't read a signal on the control circuit for CBREAK_TIME we set error flag
   if (digitalRead(att->C_PIN) == LOW) {
     // start timer
     if (att->cbreak_time == 0) {
@@ -171,6 +161,7 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
       att->error = true;
     }
   }
+  // handle actual hit detection
   // only make reading if whip_over protection is not active
   // if we can read HIGH on red L_PIN there should be contact between greens weapon and reds lame
   // this can't be true if C_PIN read low
@@ -183,10 +174,8 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
     else if (!att->hit && (now - att->depressed_time) > DEPRESS_TIME) {
       // now it is a valid hit if inside of lockout period which we handle before we call this functions
       att->hit = true;
-      // start lockout timer (this if should be redundant as hit will always be false if lockout is 0 and if hit is true lockout is always not 0)
-      if (att->lockout_time == 0) {
-        att->lockout_time = now;
-      }
+      // start lockout timer
+      att->lockout_time = now;
     }
   }
   // contact lost so we reset depressed time, this will also be called if whip_over is active
@@ -240,7 +229,7 @@ void loop() {
     resetForNextHit(&green, &red);
     return;
   }
- 
+
   // check if green made valid hit
   checkHit(&green, &red, now);
   // check if red made valid hit
