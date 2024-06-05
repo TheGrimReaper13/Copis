@@ -3,6 +3,9 @@
   COPIS - 0.2
   A simple DIY wired scoring box for saber fencing based on Arduino
 
+  Todo:
+  - make it so the light goes on right away as soon as hit was detected, don't wait for lockout
+    - this will probably need a signal function right after each checkHit function and a check if any hits were made so we can reset the system
 */
 const uint8_t SYSTEM_ERROR_PIN          = 13;     // on-board LED, use it if we need to signal system errors or such
 
@@ -163,8 +166,7 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
   }
   // handle actual hit detection
   // only make reading if whip_over protection is not active
-  // if we can read HIGH on red L_PIN there should be contact between greens weapon and reds lame
-  // this can't be true if C_PIN read low
+  // if we can read HIGH on def L_PIN the att seemed to have done something right because they actually hit
   else if (!att->whip_over && digitalRead(def->L_PIN) == HIGH) {
     // start counting when this has been first contact
     if (att->depressed_time == 0) {
