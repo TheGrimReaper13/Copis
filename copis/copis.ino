@@ -13,8 +13,8 @@ const unsigned long   DEPRESS_TIME      = 400;    // in us, 0.4ms (0.1 - 1ms)
 const unsigned long   LOCKOUT_TIME      = 170000; // in us, 170ms
 const unsigned long   CBREAK_TIME       = 3000;   // in us, 3ms
 const unsigned long   SELF_HIT_TIME     = 500000; // in us, 0.5s
-const unsigned long   MIN_WHIPOVER_TIME = 4000;   // in us, 4ms
-const unsigned long   MAX_WHIPOVER_TIME = 15000;  // in us, 15ms
+const unsigned long   MIN_PARRY_TIME    = 4000;   // in us, 4ms
+const unsigned long   MAX_PARRY_TIME    = 15000;  // in us, 15ms
 const unsigned int    MAX_BOUNCES       = 10;     // max amount of times contact can be lost during parry while still protecting against whipover
 
 const unsigned long   RESET_TIME        = 3000;   // in ms, 3s
@@ -111,9 +111,9 @@ void resetForNextHit(Fencer *a, Fencer *b) {
 
 // checks if attacker made valid hit
 void checkHit(Fencer *att, Fencer *def, unsigned long now) {
-  
+  // make "attackers" weapon hot so we can read a current at both fencers lames and the "defenders" weapon to detect hits and blade contact
   digitalWrite(att->W_PIN, HIGH);
-  // there's a change we need to wait for a very short amount of time to allow reliable signal reading (seems not to ne needed)
+  // there's a change we need to wait for a very short amount of time to allow reliable signal reading (seems not to be needed)
 
   // check for self hit, we don't need to interrupt anything, just signal briefly with light
   if (digitalRead(att->L_PIN) == HIGH) {
@@ -139,13 +139,13 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
   }
 
   // reset if no hit was made after whip_over time has passed or contact between blades was interrupted more than 10 times
-  if (parry_diff > MAX_WHIPOVER_TIME || att->bounce_counter > MAX_BOUNCES) {
+  if (parry_diff > MAX_PARRY_TIME || att->bounce_counter > MAX_BOUNCES) {
     att->parry_time = 0;
     att->bounce_counter = 0;
     att->whip_over = false;
   }
   // prevent hits from registering while in the parameters for whipover protection
-  else if (parry_diff >= MIN_WHIPOVER_TIME && parry_diff <= MAX_WHIPOVER_TIME && att->bounce_counter <= MAX_BOUNCES) {
+  else if (parry_diff >= MIN_PARRY_TIME && parry_diff <= MAX_PARRY_TIME && att->bounce_counter <= MAX_BOUNCES) {
     att->whip_over = true;
   }
 
@@ -172,7 +172,7 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
     if (att->depressed_time == 0) {
         att->depressed_time = now;
     }
-    // only register hit if it makes contact for more than 0.5ms 
+    // only register hit if it makes contact for more than 0.5ms and whip_over protection is inactive
     else if (!att->hit && (now - att->depressed_time) > DEPRESS_TIME) {
       // now it is a valid hit if inside of lockout period which we handle before we call this functions
       att->hit = true;
@@ -184,7 +184,7 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
   else {
     att->depressed_time = 0;
   }
-
+  // make "attackers" weapon cold to not trigger valid self hits while doing the same function with the current "defender" as the "attacker"
   digitalWrite(att->W_PIN, LOW);
 } // end checkHit
 
@@ -241,8 +241,8 @@ void loop() {
   digitalWrite(green.SELF_HIT_PIN, green.self_hit_time != 0 ? HIGH : LOW);
   digitalWrite(red.SELF_HIT_PIN, red.self_hit_time != 0 ? HIGH : LOW);
 
+  // signal break in control circuit
   if (green.error || red.error) {
-    // if we ecountered error signal with tone
     signalTone();
     // signal on the corresponding white lamp
     digitalWrite(green.ERROR_PIN, green.error ? HIGH : LOW);
