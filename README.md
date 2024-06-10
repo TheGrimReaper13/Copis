@@ -1,4 +1,4 @@
-# COPIS - 0.4
+# COPIS - 0.5
 ### A simple DIY wired scoring box for saber fencing based on Arduino
 
 The superficial rules for saber when a valid hit should be detected are very simple. Touch your oponents conductive target areas with your conductive weapon.
@@ -19,7 +19,7 @@ A line is connected through the lame to an input on our microcontroller, B line 
 - behaves as expected on bench (whip-over fully implemented but not tested)
 - it's not going to be be trivial testing the whip-over
 - second live test went very well, apart from some very rare false positives that I should be able to iron out
-- self_hit leds lit up continuously during live test but not on bench, this bug didn't seem to affect behaviour, for now I really have no idea why, maybe some stupid wiring mistake
+- self_hit leds lit up continuously during live test but not on bench, this bug didn't seem to affect behaviour, 
 
 ### Resources 
 
