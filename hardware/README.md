@@ -2,6 +2,8 @@
 
 ![Circuit](circuit.png)
 
+(not up to date, swapped A1 and A2)
+
 | Symbol | Meaning |
 |:---:|:---:|
 | Wg | Weapon of "green" fencer |

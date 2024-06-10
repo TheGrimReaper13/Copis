@@ -1,4 +1,4 @@
-# COPIS - 0.2
+# COPIS - 0.4
 ### A simple DIY wired scoring box for saber fencing based on Arduino
 
 The superficial rules for saber when a valid hit should be detected are very simple. Touch your oponents conductive target areas with your conductive weapon.
@@ -18,11 +18,14 @@ A line is connected through the lame to an input on our microcontroller, B line 
 
 - behaves as expected on bench (whip-over fully implemented but not tested)
 - it's not going to be be trivial testing the whip-over
-- first live test was cut short because I accidentally switched Lame with one of the Weapon lines
-- apart from the wrong wiring it seemed to perform as expected
-- more live tests needed especially to test reliability
+- second live test went very well, apart from some very rare false positives that I should be able to iron out
+- self_hit leds lit up continuously during live test but not on bench, this bug didn't seem to affect behaviour, for now I really have no idea why, maybe some stupid wiring mistake
 
 ### Resources 
 
 Official FIE material rulebook 2023 Annex B C. SABRE
 https://static.fie.org/uploads/32/163442-book%20m%20ang.pdf
+
+### Special Thanks
+
+I want to thank github user Solexis2001 for his comment years ago on another persons project which got me on the right path with the idea to alternate which weapon is hot so we can handle each fencer seperately.

@@ -1,28 +1,55 @@
 /*
 
-  COPIS - 0.2
+  COPIS - 0.5 - soldered prototype #1
   A simple DIY wired scoring box for saber fencing based on Arduino
 
-  Todo:
-  - make it so the light goes on right away as soon as hit was detected, don't wait for lockout
-    - this will probably need a signal function right after each checkHit function and a check if any hits were made so we can reset the system
+  Function not marked with "time-critical" are called after a hit was made and lockout time has passed or are called before en-garde call by ref.
+
+  TODO: We'll need to do a lot more testing how much frequency/program speed will affect behaviour. So higher speed will probably lead to more crosstalk which already seems to be a small issue.
+        
 */
-const uint8_t SYSTEM_ERROR_PIN          = 13;     // on-board LED, use it if we need to signal system errors or such
 
-const unsigned long   DEPRESS_TIME      = 400;    // in us, 0.4ms (0.1 - 1ms)
-const unsigned long   LOCKOUT_TIME      = 170000; // in us, 170ms
-const unsigned long   CBREAK_TIME       = 3000;   // in us, 3ms
-const unsigned long   SELF_HIT_TIME     = 500000; // in us, 0.5s
-const unsigned long   MIN_PARRY_TIME    = 4000;   // in us, 4ms
-const unsigned long   MAX_PARRY_TIME    = 15000;  // in us, 15ms
-const unsigned int    MAX_BOUNCES       = 10;     // max amount of times contact can be lost during parry while still protecting against whipover
+typedef unsigned long time_t; // micros() returns an unsigned long value
 
-const unsigned long   RESET_TIME        = 3000;   // in ms, 3s
-const unsigned int    SIGNAL_FREQUENCY  = 3000;   // in Hz
-unsigned long         SOUND_LENGTH      = 2000;   // in ms, 2s
+struct Fencer {
+  time_t        depressed_time; // time when contact was made
+  time_t        lockout_time;   // time when valid hit was made
+  time_t        cbreak_time;    // time when break in control circuit was detected
+  time_t        parry_time;     // time when a both blades made contact
+  time_t        self_hit_time;  // remember time when we hit ourself so we can keep the light on for SELF_HIT_TIME
+  time_t        sh_signal_time; // time when self hit signal light was turned on
 
-const uint8_t         SOUND_SIGNAL_PIN  = A1;     // produces square wave and is connected to speaker
-const uint8_t         HOLD_PIN          = A2;     // toggle switch, probably better to make this a momentary switch and a software toggle, could also just be replaced with a power switch
+  unsigned int  bounce_counter; // prevent whip over protection if contact between blades was lost more than 10 times
+
+  bool          hit;            // valid hit was made
+  bool          cbreak;         // break in control circuit detected
+  bool          whip_over;      // whipover protection active
+  bool          self_hit;       // contact with lame and weapon of the same fencer
+
+  const uint8_t W_PIN;          // C line, weapon
+  const uint8_t L_PIN;          // A line, lame
+  const uint8_t C_PIN;          // B line, weapon
+  const uint8_t SIGNAL_PIN;     // red/green lamp
+  const uint8_t CBREAK_PIN;     // white lamp
+  const uint8_t SELF_HIT_PIN;   // yellow lamp
+};
+
+const time_t          DEPRESS_TIME      = 600;    // in us, 0.6ms (0.1 - 1ms), FIE, we could make this controllable with a trimmer or poti to find a reliable value
+const time_t          LOCKOUT_TIME      = 170000; // in us, 170ms, FIE
+const time_t          CBREAK_TIME       = 3000;   // in us, 3ms
+const time_t          SELF_HIT_TIME     = 500000; // in us, 0.5s, FIE
+const time_t          MIN_PARRY_TIME    = 4000;   // in us, 4ms, FIE
+const time_t          MAX_PARRY_TIME    = 15000;  // in us, 15ms, FIE
+
+const unsigned int    MAX_BOUNCES       = 10;     // FIE, max amount of times contact can be lost during parry while still protecting against whipover
+
+const time_t          RESET_TIME        = 3000;   // in ms, 3s
+const time_t          SOUND_LENGTH      = 2000;   // in ms, 2s, FIE
+const unsigned int    SOUND_FREQUENCY   = 3000;   // in Hz
+
+const uint8_t         HOLD_PIN          = A1;     // toggle switch, probably better to make this a momentary switch and a software toggle, could also just be replaced with a power switch
+const uint8_t         SOUND_SIGNAL_PIN  = A2;     // produces square wave and is connected to speaker
+//const uint8_t         SYSTEM_ERROR_PIN  = 13;     // on-board LED, use it if we need to signal system errors or such
 
 // use macros here to make struct initialization a bit more readible as Arduino IDE doesn't allow the use of specified initializers for members :(
 # define GREEN_WEAPON_PIN   2
@@ -33,98 +60,103 @@ const uint8_t         HOLD_PIN          = A2;     // toggle switch, probably bet
 # define RED_CONTROL_PIN    7
 # define GREEN_SIGNAL_PIN   8
 # define RED_SIGNAL_PIN     9
-# define GREEN_ERROR_PIN    10
-# define RED_ERROR_PIN      11  
+# define GREEN_CBREAK_PIN   10
+# define RED_CBREAK_PIN     11  
 # define GREEN_SELF_HIT_PIN 12  
-# define RED_SELF_HIT_PIN   A0  // don't use 13 as it's linked to on-board LED
-
-struct Fencer {
-  unsigned long depressed_time; // time when contact was made
-  unsigned long lockout_time;   // time when valid hit was made
-  unsigned long cbreak_time;    // time when break in control circuit was detected
-  unsigned long parry_time;     // time when a both blades made contact
-  unsigned long self_hit_time;  // remember time when we hit ourself so we can keep the light on for SELF_HIT_TIME
-  unsigned int  bounce_counter; // prevent whip over protection if contact between blades was lost more than 10 times
-
-  bool          hit;            // valid hit was made
-  bool          error;          // break in control circuit
-  bool          whip_over;      // active whipover protection 
-
-  const uint8_t W_PIN;          // C line, weapon
-  const uint8_t L_PIN;          // A line, lame
-  const uint8_t C_PIN;          // B line, weapon
-  const uint8_t SIGNAL_PIN;     // red/green lamp
-  const uint8_t ERROR_PIN;      // white lamp
-  const uint8_t SELF_HIT_PIN;   // yellow lamp
-};
+# define RED_SELF_HIT_PIN   A0  // don't use 13 here as it's linked to on board LED, see SYSTEM_ERROR_PIN
 
 void signalTone() {
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, SOUND_LENGTH);
+  tone(SOUND_SIGNAL_PIN, SOUND_FREQUENCY, SOUND_LENGTH);
 } // end signalTone
 
-// use these 2 mainly for prototype when we don't have easily visible LEDs yet, use signalTone for simultanious hit
+// use these 2 mainly for prototype when we don't have easily visible LEDs yet, use signalTone for simultanious hit, not used anymore at this stage (we should remove these after next iteration or move them to different branch)
 void signalToneGreen() {
   // slow beeping
   for (int i = 0 ; i < 3 ; i++) {
-    tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
+    tone(SOUND_SIGNAL_PIN, SOUND_FREQUENCY, 250);
     delay(500);
   }
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 250);
+  tone(SOUND_SIGNAL_PIN, SOUND_FREQUENCY, 250);
 } // end signalToneGreen
 
 void signalToneRed() {
   // fast beeping
   for (int i = 0 ; i < 7 ; i++) {
-    tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
+    tone(SOUND_SIGNAL_PIN, SOUND_FREQUENCY, 124);
     delay(250);
   }
-  tone(SOUND_SIGNAL_PIN, SIGNAL_FREQUENCY, 124);
+  tone(SOUND_SIGNAL_PIN, SOUND_FREQUENCY, 124);
 } // end signalToneRed
 
+// as this expression is a bit more complicated we move it into it's own function to keep loop() clean and easy to understand
+void signalSelfHit(Fencer *p, const time_t now) { // time-critical
+  if (p->self_hit) {
+      // if we hit ourselves and we haven't turned the LED on yet turn it on and start sh_signal timer
+    if (p->sh_signal_time == 0) {
+      p->sh_signal_time = now;
+      digitalWrite(p->SELF_HIT_PIN, HIGH);
+    }
+  }
+  // if we have turned the LED on but the contact between own lame and weapon was lost we leave the LED on for SELF_HIT_TIME
+  else if (p->sh_signal_time != 0 && (now - p->sh_signal_time) > SELF_HIT_TIME) {
+    p->sh_signal_time = 0;
+    digitalWrite(p->SELF_HIT_PIN, LOW); 
+  }
+} // end signalSelfHit
+
 void reset(Fencer *p) {
-  // W_PIN should always LOW after exiting checkHit, but set it low just to be sure
-  digitalWrite(p->W_PIN, LOW);
+  // W_PIN should always be LOW after exiting checkHit, but set it low just to be sure
+  digitalWrite(p->W_PIN,        LOW);
   // turn off signal lights
-  digitalWrite(p->SIGNAL_PIN, LOW);
-  digitalWrite(p->ERROR_PIN, LOW);
+  digitalWrite(p->SIGNAL_PIN,   LOW);
+  digitalWrite(p->CBREAK_PIN,   LOW);
   digitalWrite(p->SELF_HIT_PIN, LOW);
 
   p->depressed_time = 0;
-  p->lockout_time = 0;
-  p->cbreak_time = 0;
-  p->parry_time = 0;
-  p->self_hit_time = 0;
+  p->lockout_time   = 0;
+  p->cbreak_time    = 0;
+  p->parry_time     = 0;
+  p->self_hit_time  = 0;
+  p->sh_signal_time = 0;
 
   p->bounce_counter = 0;
 
-  p->hit = false;
-  p->error = false;
-  p->whip_over = false;
+  p->hit            = false;
+  p->cbreak         = false;
+  p->whip_over      = false;
+  p->self_hit       = false;
 } // end reset
 
-void resetForNextHit(Fencer *a, Fencer *b) {
+void resetAndWait(Fencer *p, Fencer *q) {
+  // first delay so we don't turn off signal lights
   delay(RESET_TIME);
 
-  reset(a);
-  reset(b);
+  reset(p);
+  reset(q);
 } // end reset
 
 // checks if attacker made valid hit
-void checkHit(Fencer *att, Fencer *def, unsigned long now) {
+void checkHit(Fencer *att, Fencer *def, const time_t now) {  // time-critical
   // make "attackers" weapon hot so we can read a current at both fencers lames and the "defenders" weapon to detect hits and blade contact
   digitalWrite(att->W_PIN, HIGH);
-  // there's a change we need to wait for a very short amount of time to allow reliable signal reading (seems not to be needed)
 
   // check for self hit, we don't need to interrupt anything, just signal briefly with light
   if (digitalRead(att->L_PIN) == HIGH) {
-    att->self_hit_time = now;
+    if (att->self_hit_time == 0) {
+      att->self_hit_time = now;
+    }
+    else if (!att->self_hit && (now - att->self_hit_time) > DEPRESS_TIME) {
+      att->self_hit = true;
+    }
   }
-  else if (att->self_hit_time != 0 && (now - att->self_hit_time) > SELF_HIT_TIME) {
+  // we turn on the LED outside this function so we don't need to worry about keeping it lit here
+  else {
     att->self_hit_time = 0;
+    att->self_hit = false;
   }
-
+  
   // handle whip-over protection
-  const unsigned long parry_diff = now - att->parry_time;  // save diff as constant as we need it several times
+  const time_t parry_diff = now - att->parry_time;  // save diff as constant as we need it several times
 
   // check if blades made contact
   if (digitalRead(def->C_PIN) == HIGH) {
@@ -154,14 +186,14 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
     att->cbreak_time = 0;
   }
 
-  // handle break in control circuit, if we can't read a signal on the control circuit for CBREAK_TIME we set error flag
+  // handle break in control circuit, if we can't read a signal on the control circuit for CBREAK_TIME we set cbreak flag
   if (digitalRead(att->C_PIN) == LOW) {
     // start timer
     if (att->cbreak_time == 0) {
       att->cbreak_time = now;
     }
     else if ((now - att->cbreak_time) > CBREAK_TIME) {
-      att->error = true;
+      att->cbreak = true;
     }
   }
   // handle actual hit detection
@@ -189,46 +221,50 @@ void checkHit(Fencer *att, Fencer *def, unsigned long now) {
 } // end checkHit
 
 void setup() {
-  pinMode(HOLD_PIN, INPUT_PULLUP);
-  pinMode(SOUND_SIGNAL_PIN, OUTPUT);
+  //pinMode(SYSTEM_ERROR_PIN,   OUTPUT);
+  pinMode(HOLD_PIN,           INPUT_PULLUP);
 
-  pinMode(GREEN_LAME_PIN, INPUT);         pinMode(RED_LAME_PIN, INPUT);
-  pinMode(GREEN_CONTROL_PIN, INPUT);      pinMode(RED_CONTROL_PIN, INPUT);
+  // BODY WIRE LINES
+  pinMode(GREEN_LAME_PIN,     INPUT);      pinMode(RED_LAME_PIN,      INPUT);
+  pinMode(GREEN_CONTROL_PIN,  INPUT);      pinMode(RED_CONTROL_PIN,   INPUT);
+  pinMode(GREEN_WEAPON_PIN,   OUTPUT);     pinMode(RED_WEAPON_PIN,    OUTPUT);
+  
+  // SIGNAL SPEAKER AND LEDS
+  pinMode(SOUND_SIGNAL_PIN,   OUTPUT);
+  pinMode(GREEN_SIGNAL_PIN,   OUTPUT);     pinMode(RED_SIGNAL_PIN,    OUTPUT);
+  pinMode(GREEN_CBREAK_PIN,   OUTPUT);     pinMode(RED_CBREAK_PIN,    OUTPUT);
+  pinMode(GREEN_SELF_HIT_PIN, OUTPUT);     pinMode(RED_SELF_HIT_PIN,  OUTPUT);
 
-  pinMode(GREEN_WEAPON_PIN, OUTPUT);      pinMode(RED_WEAPON_PIN, OUTPUT);
-  pinMode(GREEN_SIGNAL_PIN, OUTPUT);      pinMode(RED_SIGNAL_PIN, OUTPUT);
-  pinMode(GREEN_ERROR_PIN, OUTPUT);       pinMode(RED_ERROR_PIN, OUTPUT);
-  pinMode(GREEN_SELF_HIT_PIN, OUTPUT);    pinMode(RED_SELF_HIT_PIN, OUTPUT);
-
-
-  digitalWrite(GREEN_WEAPON_PIN, LOW);    digitalWrite(RED_WEAPON_PIN, LOW);
-  digitalWrite(GREEN_SIGNAL_PIN, LOW);    digitalWrite(RED_SIGNAL_PIN, LOW);
-  digitalWrite(GREEN_ERROR_PIN, LOW);     digitalWrite(RED_ERROR_PIN, LOW);
-  digitalWrite(GREEN_SELF_HIT_PIN, LOW);  digitalWrite(RED_SELF_HIT_PIN, LOW);
+  //digitalWrite(SYSTEM_ERROR_PIN,    LOW);
+  digitalWrite(SOUND_SIGNAL_PIN,    LOW);
+  digitalWrite(GREEN_WEAPON_PIN,    LOW);  digitalWrite(RED_WEAPON_PIN,   LOW);
+  digitalWrite(GREEN_SIGNAL_PIN,    LOW);  digitalWrite(RED_SIGNAL_PIN,   LOW);
+  digitalWrite(GREEN_CBREAK_PIN,    LOW);  digitalWrite(RED_CBREAK_PIN,   LOW);
+  digitalWrite(GREEN_SELF_HIT_PIN,  LOW);  digitalWrite(RED_SELF_HIT_PIN, LOW);
 }  // end setup
 
-void loop() {
+void loop() {  // time-critical
 
   static Fencer green = { 
     0, 0, 0, 0, 0, 0,
-    false, false, false,
+    false, false, false, false,
     GREEN_WEAPON_PIN, GREEN_LAME_PIN,   GREEN_CONTROL_PIN,
-    GREEN_SIGNAL_PIN, GREEN_ERROR_PIN,  GREEN_SELF_HIT_PIN
+    GREEN_SIGNAL_PIN, GREEN_CBREAK_PIN,  GREEN_SELF_HIT_PIN
   };
 
   static Fencer red = { 
     0, 0, 0, 0, 0, 0,
-    false, false, false,
+    false, false, false, false,
     RED_WEAPON_PIN,   RED_LAME_PIN,     RED_CONTROL_PIN,
-    RED_SIGNAL_PIN,   RED_ERROR_PIN,    RED_SELF_HIT_PIN
+    RED_SIGNAL_PIN,   RED_CBREAK_PIN,    RED_SELF_HIT_PIN
   };
 
-  const unsigned long now = micros();
+  const time_t now = micros();
 
   // need to check for LOW as we are pulling pin up
   if (digitalRead(HOLD_PIN) == LOW) { 
     // don't do anything as long as hold toggle is "on" but reset so we can assume operation normally
-    resetForNextHit(&green, &red);
+    resetAndWait(&green, &red);
     return;
   }
 
@@ -237,36 +273,31 @@ void loop() {
   // check if red made valid hit
   checkHit(&red, &green, now);
 
-  // signal self hits
-  digitalWrite(green.SELF_HIT_PIN, green.self_hit_time != 0 ? HIGH : LOW);
-  digitalWrite(red.SELF_HIT_PIN, red.self_hit_time != 0 ? HIGH : LOW);
-
   // signal break in control circuit
-  if (green.error || red.error) {
+  if (green.cbreak || red.cbreak) {
     signalTone();
     // signal on the corresponding white lamp
-    digitalWrite(green.ERROR_PIN, green.error ? HIGH : LOW);
-    digitalWrite(red.ERROR_PIN, red.error ? HIGH : LOW);
+    digitalWrite(green.CBREAK_PIN, green.cbreak ? HIGH : LOW);
+    digitalWrite(red.CBREAK_PIN, red.cbreak ? HIGH : LOW);
     // then reset everything
-    resetForNextHit(&green, &red);
+    resetAndWait(&green, &red);
+    return;
   }
-  // if at least one player made a hit we can check if lockout time has expired, if so we can signal hits and reset the routine
-  else if ((green.hit && (now - green.lockout_time) > LOCKOUT_TIME) || (red.hit && (now - red.lockout_time) > LOCKOUT_TIME)) {
-      // light signal
-    digitalWrite(green.SIGNAL_PIN, green.hit ? HIGH : LOW);
-    digitalWrite(red.SIGNAL_PIN, red.hit ? HIGH : LOW);
-    
-    // sound signal
-    if (green.hit && red.hit) {
-      signalTone();
-    }
-    else if (green.hit) {
-      signalToneGreen();
-    }
-    else if (red.hit) {
-      signalToneRed();
-    }
 
-    resetForNextHit(&green, &red);
+  // signal self hits
+  signalSelfHit(&green, now);
+  signalSelfHit(&red, now);
+
+  // signal any hits made with light
+  digitalWrite(green.SIGNAL_PIN, green.hit ? HIGH : LOW);
+  digitalWrite(red.SIGNAL_PIN, red.hit ? HIGH : LOW);
+  // and sound
+  if (green.hit || red.hit) {
+    signalTone();
+  }
+
+  // if any hits were made and lockout time has passed we can reset
+  if ((green.hit && (now - green.lockout_time) > LOCKOUT_TIME) || (red.hit && (now - red.lockout_time) > LOCKOUT_TIME)) {
+    resetAndWait(&green, &red);
   }
 }  // end loop
