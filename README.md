@@ -22,7 +22,7 @@ A line is connected through the lame to an input on our microcontroller, B line 
 - self_hit leds lit up continuously during live test but not on bench, this bug didn't seem to affect behaviour
 - for now the main goal is reliability
 
-![first soldered prototype](Copis_prototype_#2.jpg)
+![prototype](Copis_prototype_#2.jpg)
 
 ### Resources 
 
